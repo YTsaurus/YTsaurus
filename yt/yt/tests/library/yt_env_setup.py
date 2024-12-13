@@ -459,7 +459,7 @@ class YTEnvSetup(object):
     NUM_REMOTE_CLUSTERS = 0
     NUM_TEST_PARTITIONS = 1
     CLASS_TEST_LIMIT = 8 * 60  # limits all test cases in class duration inside partition (seconds)
-    NODE_IO_ENGINE_TYPE = None  # use "thread_pool" or "uring"
+    NODE_IO_ENGINE_TYPE = None  # use "thread_pool" or "uring" or "weighted_fair_share_thread_pool"
     NODE_USE_DIRECT_IO_FOR_READS = "never"
 
     # COMPAT(kvk1920)

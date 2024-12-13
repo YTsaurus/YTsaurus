@@ -10,6 +10,8 @@ message TWorkloadDescriptor
     required int32 band = 2;
     optional int64 instant = 3;
     repeated string annotations = 4;
+    optional string disk_fair_share_bucket_tag = 5;
+    optional double disk_fair_share_bucket_weight = 6;
 }
 
 message TWorkloadDescriptorExt

@@ -131,6 +131,7 @@ target_sources(yt-yt-core PRIVATE
   ${PROJECT_SOURCE_DIR}/yt/yt/core/concurrency/fair_share_invoker_queue.cpp
   ${PROJECT_SOURCE_DIR}/yt/yt/core/concurrency/fair_share_queue_scheduler_thread.cpp
   ${PROJECT_SOURCE_DIR}/yt/yt/core/concurrency/fair_share_thread_pool.cpp
+  ${PROJECT_SOURCE_DIR}/yt/yt/core/concurrency/fair_share_weighted_thread_pool.cpp
   ${PROJECT_SOURCE_DIR}/yt/yt/core/concurrency/fair_throttler.cpp
   ${PROJECT_SOURCE_DIR}/yt/yt/core/concurrency/fiber_scheduler_thread.cpp
   ${PROJECT_SOURCE_DIR}/yt/yt/core/concurrency/fiber.cpp

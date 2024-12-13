@@ -37,77 +37,84 @@ public:
 
     TFuture<TReadResponse> Read(
         std::vector<TReadRequest> requests,
-        EWorkloadCategory category,
+        const TWorkloadDescriptor& descriptor,
         TRefCountedTypeCookie tagCookie,
         TSessionId sessionId,
         bool useDedicatedAllocations) override
     {
-        return GetCurrentEngine()->Read(std::move(requests), category, tagCookie, sessionId, useDedicatedAllocations);
+        return GetCurrentEngine()->Read(std::move(requests), descriptor, tagCookie, sessionId, useDedicatedAllocations);
     }
 
     TFuture<void> Write(
         TWriteRequest request,
-        EWorkloadCategory category,
+        const TWorkloadDescriptor& descriptor,
         TSessionId sessionId) override
     {
-        return GetCurrentEngine()->Write(std::move(request), category, sessionId);
+        return GetCurrentEngine()->Write(std::move(request), descriptor, sessionId);
     }
 
     TFuture<void> FlushFile(
         TFlushFileRequest request,
-        EWorkloadCategory category) override
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) override
     {
-        return GetCurrentEngine()->FlushFile(std::move(request), category);
+        return GetCurrentEngine()->FlushFile(std::move(request), descriptor, sessionId);
     }
 
     TFuture<void> FlushFileRange(
         TFlushFileRangeRequest request,
-        EWorkloadCategory category,
+        const TWorkloadDescriptor& descriptor,
         TSessionId sessionId) override
     {
-        return GetCurrentEngine()->FlushFileRange(std::move(request), category, sessionId);
+        return GetCurrentEngine()->FlushFileRange(std::move(request), descriptor, sessionId);
     }
 
     TFuture<void> FlushDirectory(
         TFlushDirectoryRequest request,
-        EWorkloadCategory category) override
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) override
     {
-        return GetCurrentEngine()->FlushDirectory(std::move(request), category);
+        return GetCurrentEngine()->FlushDirectory(std::move(request), descriptor, sessionId);
     }
 
     TFuture<TIOEngineHandlePtr> Open(
         TOpenRequest request,
-        EWorkloadCategory category) override
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) override
     {
-        return GetCurrentEngine()->Open(std::move(request), category);
+        return GetCurrentEngine()->Open(std::move(request), descriptor, sessionId);
     }
 
     TFuture<void> Close(
         TCloseRequest request,
-        EWorkloadCategory category) override
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) override
     {
-        return GetCurrentEngine()->Close(std::move(request), category);
+        return GetCurrentEngine()->Close(std::move(request), descriptor, sessionId);
     }
 
     TFuture<void> Allocate(
         TAllocateRequest request,
-        EWorkloadCategory category) override
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) override
     {
-        return GetCurrentEngine()->Allocate(std::move(request), category);
+        return GetCurrentEngine()->Allocate(std::move(request), descriptor, sessionId);
     }
 
     TFuture<void> Lock(
         TLockRequest request,
-        EWorkloadCategory category) override
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) override
     {
-        return GetCurrentEngine()->Lock(std::move(request), category);
+        return GetCurrentEngine()->Lock(std::move(request), descriptor, sessionId);
     }
 
     TFuture<void> Resize(
         TResizeRequest request,
-        EWorkloadCategory category) override
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) override
     {
-        return GetCurrentEngine()->Resize(std::move(request), category);
+        return GetCurrentEngine()->Resize(std::move(request), descriptor, sessionId);
     }
 
     bool IsSick() const override

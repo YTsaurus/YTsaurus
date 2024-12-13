@@ -104,7 +104,7 @@ TFuture<void> TChunkFileWriter::Open()
 
     // NB: Races are possible between file creation and a call to flock.
     // Unfortunately in Linux we can't create'n'flock a file atomically.
-    return IOEngine_->Open({FileName_ + NFS::TempFileSuffix, FileMode})
+    return IOEngine_->Open({FileName_ + NFS::TempFileSuffix, FileMode}, EWorkloadCategory::UserBatch, static_cast<IIOEngine::TSessionId>(ChunkId_))
         .Apply(BIND([=, this, this_ = MakeStrong(this)] (const TIOEngineHandlePtr& file) {
             YT_VERIFY(State_.load() == EState::Opening);
 
@@ -170,7 +170,8 @@ bool TChunkFileWriter::WriteBlocks(
             std::move(buffers),
             SyncOnClose_
         },
-        workloadDescriptor.Category)
+        workloadDescriptor,
+        static_cast<IIOEngine::TSessionId>(ChunkId_))
         .Apply(BIND([=, this, this_ = MakeStrong(this), newDataSize = currentOffset] (const TError& error) {
             YT_VERIFY(State_.load() == EState::WritingBlocks);
 
@@ -207,7 +208,7 @@ TFuture<void> TChunkFileWriter::Close(
     }
 
     auto metaFileName = FileName_ + ChunkMetaSuffix;
-    return IOEngine_->Close({std::move(DataFile_), DataSize_, SyncOnClose_})
+    return IOEngine_->Close({std::move(DataFile_), DataSize_, SyncOnClose_}, workloadDescriptor, static_cast<IIOEngine::TSessionId>(ChunkId_))
         .Apply(BIND([=, this, this_ = MakeStrong(this)] {
             YT_VERIFY(State_.load() == EState::Closing);
 
@@ -221,7 +222,7 @@ TFuture<void> TChunkFileWriter::Close(
             ChunkMeta_->CopyFrom(*chunkMeta);
             SetProtoExtension(ChunkMeta_->mutable_extensions(), BlocksExt_);
 
-            return IOEngine_->Open({metaFileName + NFS::TempFileSuffix, FileMode});
+            return IOEngine_->Open({metaFileName + NFS::TempFileSuffix, FileMode}, workloadDescriptor, static_cast<IIOEngine::TSessionId>(ChunkId_));
         }))
         .Apply(BIND([=, this, this_ = MakeStrong(this)] (const TIOEngineHandlePtr& chunkMetaFile) {
             YT_VERIFY(State_.load() == EState::Closing);
@@ -249,13 +250,15 @@ TFuture<void> TChunkFileWriter::Close(
                     {std::move(buffer)},
                     SyncOnClose_
                 },
-                workloadDescriptor.Category)
+                workloadDescriptor,
+                static_cast<IIOEngine::TSessionId>(ChunkId_))
                 .Apply(BIND(&IIOEngine::Close, IOEngine_, IIOEngine::TCloseRequest{
                     std::move(chunkMetaFile),
                     MetaDataSize_,
                     SyncOnClose_
                 },
-                workloadDescriptor.Category));
+                workloadDescriptor,
+                static_cast<IIOEngine::TSessionId>(ChunkId_)));
         }))
         .Apply(BIND([=, this, this_ = MakeStrong(this)] {
             YT_VERIFY(State_.load() == EState::Closing);
@@ -267,7 +270,7 @@ TFuture<void> TChunkFileWriter::Close(
                 return VoidFuture;
             }
 
-            return IOEngine_->FlushDirectory({NFS::GetDirectoryName(FileName_)});
+            return IOEngine_->FlushDirectory({NFS::GetDirectoryName(FileName_)}, workloadDescriptor, static_cast<IIOEngine::TSessionId>(ChunkId_));
         }).AsyncVia(IOEngine_->GetAuxPoolInvoker()))
         .Apply(BIND([this, _this = MakeStrong(this)] (const TError& error) {
             YT_VERIFY(State_.load() == EState::Closing);

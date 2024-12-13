@@ -489,6 +489,7 @@ class TestIoEngine(YTEnvSetup):
 
         content1 = [{"a": i} for i in range(100)]
         content2 = [{"a": i} for i in range(100, 200)]
+        content3 = [{"a": i} for i in range(200, 300)]
 
         self._set_io_engine({"default": "fair_share_thread_pool"})
         self._wait_for_io_engine_enabled("fair_share_thread_pool")
@@ -498,7 +499,11 @@ class TestIoEngine(YTEnvSetup):
         self._wait_for_io_engine_enabled("thread_pool")
         write_table("<append=%true>//tmp/table", content2)
 
-        assert read_table("//tmp/table") == content1 + content2
+        self._set_io_engine({"default": "weighted_fair_share_thread_pool"})
+        self._wait_for_io_engine_enabled("weighted_fair_share_thread_pool")
+        write_table("<append=%true>//tmp/table", content3)
+
+        assert read_table("//tmp/table") == content1 + content2 + content3
 
         if not is_uring_supported() or is_uring_disabled():
             return
@@ -559,6 +564,11 @@ def is_uring_disabled():
 @pytest.mark.skipif(not is_uring_supported() or is_uring_disabled(), reason="io_uring is not available on this host")
 class TestIoEngineUringStats(TestIoEngine):
     NODE_IO_ENGINE_TYPE = "uring"
+
+
+@authors("aleksandr.gaev")
+class TestWeightedFairShareThreadPoolIoEngine(TestIoEngine):
+    NODE_IO_ENGINE_TYPE = "weighted_fair_share_thread_pool"
 
 
 @authors("don-dron")

@@ -104,6 +104,7 @@ using TFairShareThreadPoolTag = TString;
 DECLARE_REFCOUNTED_STRUCT(IPoolWeightProvider)
 
 DECLARE_REFCOUNTED_STRUCT(ITwoLevelFairShareThreadPool)
+DECLARE_REFCOUNTED_STRUCT(IFairShareWeightedThreadPool)
 
 class TFiber;
 

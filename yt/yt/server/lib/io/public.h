@@ -11,6 +11,7 @@ DEFINE_ENUM(EIOEngineType,
     (Uring)
     (FairShareThreadPool)
     (FairShareUring)
+    (WeightedFairShareThreadPool)
 );
 
 DEFINE_ENUM(EDirectIOPolicy,
