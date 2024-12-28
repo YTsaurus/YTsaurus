@@ -45,7 +45,7 @@ public:
 
     //! Starts a transaction and validates that by the moment of its start timestamp,
     //! incarnation of a query is still the same. Context switch happens inside.
-    NApi::ITransactionPtr StartIncarnationTransaction(EQueryState previousState = EQueryState::Running) const;
+    std::pair<NApi::ITransactionPtr, NQueryTrackerClient::NRecords::TActiveQuery> StartIncarnationTransaction(EQueryState previousState = EQueryState::Running) const;
 
 protected:
     const NApi::IClientPtr StateClient_;
@@ -58,6 +58,7 @@ protected:
     const TString User_;
     const EQueryEngine Engine_;
     const NYTree::INodePtr SettingsNode_;
+    const TInstant AcquisitionTime_;
 
     const NLogging::TLogger Logger;
 
@@ -67,6 +68,9 @@ protected:
     TYsonString Progress_ = TYsonString(TString("{}"));
     int ProgressVersion_ = 0;
     int LastSavedProgressVersion_ = 0;
+
+    std::optional<TInstant> LastStateChange_;
+    THashMap<EQueryState, TDuration> StateTimes_;
 
     void StartProgressWriter();
     void StopProgressWriter();

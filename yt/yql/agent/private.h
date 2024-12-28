@@ -11,7 +11,7 @@ namespace NYT::NYqlAgent {
 ////////////////////////////////////////////////////////////////////////////////
 
 YT_DEFINE_GLOBAL(const NLogging::TLogger, YqlAgentLogger, "YqlAgent");
-YT_DEFINE_GLOBAL(const NProfiling::TProfiler, YqlAgentProfiler, NProfiling::TProfiler("/yql_agent").WithGlobal());
+YT_DEFINE_GLOBAL(const NProfiling::TProfiler, YqlAgentProfiler, NProfiling::TProfiler("/yql_agent"));
 
 ////////////////////////////////////////////////////////////////////////////////
 

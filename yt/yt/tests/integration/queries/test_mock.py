@@ -3,9 +3,11 @@ from yt_env_setup import YTEnvSetup
 from yt_commands import (
     add_member, authors, create_access_control_object, remove,
     make_ace, raises_yt_error, wait, create_user, print_debug, select_rows,
-    set, get, insert_rows, generate_uuid)
+    set, get, insert_rows, generate_uuid, ls)
 
 from yt_error_codes import AuthorizationErrorCode, ResolveErrorCode
+
+from yt_helpers import profiler_factory
 
 from yt_queries import Query, start_query, list_queries, get_query_tracker_info
 
@@ -30,6 +32,51 @@ def expect_queries(queries, list_result, incomplete=False):
             print_debug(f"{table}:")
             select_rows(f"* from [//sys/query_tracker/{table}]", timestamp=timestamp)
         raise
+
+
+class TestMetrics(YTEnvSetup):
+    DELTA_DRIVER_CONFIG = {
+        "cluster_connection_dynamic_config_policy": "from_cluster_directory",
+    }
+
+    @authors("mpereskokova")
+    def test_active_queries_metrics(self, query_tracker):
+        query_tracker = ls("//sys/query_tracker/instances")[0]
+        profiler = profiler_factory().at_query_tracker(query_tracker)
+
+        q = start_query("mock", "run_forever")
+
+        active_queries_metric = profiler.gauge("query_tracker/active_queries")
+        wait(lambda: active_queries_metric.get({"state": "Running"}) == 1)
+
+        q.abort()
+        wait(lambda: active_queries_metric.get({"state": "Running"}) == 0)
+
+    @authors("mpereskokova")
+    def test_state_time_metrics(self, query_tracker):
+        query_tracker = ls("//sys/query_tracker/instances")[0]
+        profiler = profiler_factory().at_query_tracker(query_tracker)
+        state_time_metric = profiler.gauge("query_tracker/state_time")
+
+        q1 = start_query("mock", "run_forever")
+        wait(lambda: state_time_metric.get({"state": "Pending"}) is not None)
+        assert state_time_metric.get({"state": "Running"}) is None
+        assert state_time_metric.get({"state": "Aborting"}) is None
+
+        q1.abort()
+        wait(lambda: state_time_metric.get({"state": "Running"}) is not None)
+        wait(lambda: state_time_metric.get({"state": "Aborting"}) is not None)
+        assert state_time_metric.get({"state": "Failing"}) is None
+
+        q2 = start_query("mock", "fail")
+        with raises_yt_error("failed"):
+            q2.track()
+        wait(lambda: state_time_metric.get({"state": "Failing"}) is not None)
+        assert state_time_metric.get({"state": "Completing"}) is None
+
+        q3 = start_query("mock", "complete_after", settings={"duration": 0})
+        q3.track()
+        wait(lambda: state_time_metric.get({"state": "Completing"}) is not None)
 
 
 class TestQueriesMock(YTEnvSetup):
@@ -232,6 +279,8 @@ class TestQueryTrackerBan(YTEnvSetup):
             "user": "root",
             "query": "run_forever",
             "incarnation": 0,
+            "start_time": 0,
+            "execution_start_time": 0,
             "state": "pending",
             "settings": {}
         }])
@@ -260,6 +309,7 @@ class TestQueryTrackerQueryRestart(YTEnvSetup):
             "query": query,
             "incarnation": 0,
             "start_time": 0,
+            "execution_start_time": 0,
             "progress": {},
             "annotations": {},
             "state": state,

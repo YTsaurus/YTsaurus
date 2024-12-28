@@ -60,6 +60,12 @@ types:
         column_type: Timestamp
         lock: client
 
+      - cpp_name: ExecutionStartTime
+        cpp_type: std::optional<TInstant>
+        column_name: execution_start_time
+        column_type: Timestamp
+        lock: client
+
       - cpp_name: FilterFactors
         cpp_type: TString
         column_name: filter_factors

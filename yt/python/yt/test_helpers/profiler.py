@@ -240,3 +240,9 @@ class ProfilerFactory(object):
 
     def at_cypress_proxy(self, proxy, **kwargs):
         return Profiler(self.yt_client, "//sys/cypress_proxies/{0}/orchid/sensors".format(proxy), **kwargs)
+
+    def at_yql_agent(self, yqla, **kwargs):
+        return Profiler(self.yt_client, "//sys/yql_agent/instances/{0}/orchid/sensors".format(yqla), **kwargs)
+
+    def at_query_tracker(self, qt, **kwargs):
+        return Profiler(self.yt_client, "//sys/query_tracker/instances/{0}/orchid/sensors".format(qt), **kwargs)

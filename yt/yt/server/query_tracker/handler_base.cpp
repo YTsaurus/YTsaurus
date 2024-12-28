@@ -1,6 +1,7 @@
 #include "handler_base.h"
 
 #include "config.h"
+#include "profiler.h"
 
 #include <yt/yt/ytlib/query_tracker_client/records/query.record.h>
 
@@ -157,6 +158,7 @@ TQueryHandlerBase::TQueryHandlerBase(
     , User_(activeQuery.User)
     , Engine_(activeQuery.Engine)
     , SettingsNode_(ConvertToNode(activeQuery.Settings))
+    , AcquisitionTime_(TInstant::Now())
     , Logger(NQueryTracker::Logger().WithTag("QueryId: %v, Engine: %v", activeQuery.Key.QueryId, activeQuery.Engine))
     , ProgressWriter_(New<TPeriodicExecutor>(ControlInvoker_, BIND(&TQueryHandlerBase::TryWriteProgress, MakeWeak(this)), Config_->QueryProgressWritePeriod))
 {
@@ -177,7 +179,7 @@ void TQueryHandlerBase::StopProgressWriter()
     }
 }
 
-ITransactionPtr TQueryHandlerBase::StartIncarnationTransaction(EQueryState previousState) const
+std::pair<ITransactionPtr, TActiveQuery> TQueryHandlerBase::StartIncarnationTransaction(EQueryState previousState) const
 {
     YT_LOG_DEBUG("Starting incarnation transaction");
     auto transaction = WaitFor(StateClient_->StartTransaction(ETransactionType::Tablet))
@@ -186,7 +188,10 @@ ITransactionPtr TQueryHandlerBase::StartIncarnationTransaction(EQueryState previ
     options.Timestamp = transaction->GetStartTimestamp();
     const auto& idMapping = TActiveQueryDescriptor::Get()->GetIdMapping();
     options.ColumnFilter = {
+        *idMapping.AssignedTracker,
+        *idMapping.Engine,
         *idMapping.Incarnation,
+        *idMapping.StartTime,
         *idMapping.State,
     };
     options.KeepMissingRows = true;
@@ -227,7 +232,7 @@ ITransactionPtr TQueryHandlerBase::StartIncarnationTransaction(EQueryState previ
             optionalRecords[0]->State);
     }
     YT_LOG_DEBUG("Incarnation transaction started (TransactionId: %v)", transaction->GetId());
-    return transaction;
+    return {transaction, *optionalRecords[0]};
 }
 
 void TQueryHandlerBase::OnProgress(TYsonString progress)
@@ -333,7 +338,7 @@ void TQueryHandlerBase::TryWriteProgress()
 
     YT_LOG_DEBUG("Trying to save progress (Version: %v)", progressVersion);
     try {
-        auto transaction = StartIncarnationTransaction();
+        auto transaction = StartIncarnationTransaction().first;
         auto rowBuffer = New<TRowBuffer>();
         {
             TActiveQueryPartial newRecord{
@@ -369,7 +374,11 @@ bool TQueryHandlerBase::TryWriteQueryState(EQueryState state, EQueryState previo
 {
     try {
         YT_LOG_INFO("Writing query state (State: %v, PreviousState: %v)", state, previousState);
-        auto transaction = StartIncarnationTransaction(previousState);
+        ITransactionPtr transaction;
+        TActiveQuery record;
+        std::tie(transaction, record) = StartIncarnationTransaction(previousState);
+
+        auto now = TInstant::Now();
         auto rowBuffer = New<TRowBuffer>();
         {
             TActiveQueryPartial newRecord{
@@ -379,8 +388,11 @@ bool TQueryHandlerBase::TryWriteQueryState(EQueryState state, EQueryState previo
                 .Error = error,
             };
             if (state == EQueryState::Completing || state == EQueryState::Failing) {
-                newRecord.FinishTime = TInstant::Now();
+                newRecord.FinishTime = now;
                 newRecord.ResultCount = wireRowsetOrErrors.size();
+            }
+            if (state == EQueryState::Running) {
+                newRecord.ExecutionStartTime = now;
             }
 
             std::vector newRows = {
@@ -423,6 +435,18 @@ bool TQueryHandlerBase::TryWriteQueryState(EQueryState state, EQueryState previo
         }
         WaitFor(transaction->Commit())
             .ThrowOnError();
+
+        StateTimes_[previousState] += now - LastStateChange_.value_or(AcquisitionTime_);
+        LastStateChange_ = now;
+
+        for (auto& [state, time] : StateTimes_) {
+            // Save profile counter.
+            auto& stateTimeGauge = GetOrCreateProfilingCounter<TStateTimeProfilingCounter>(
+                QueryTrackerProfiler,
+                ProfilingTagsFromActiveQueryRecord(record))->StateTime;
+            stateTimeGauge.Update(time);
+        }
+
         YT_LOG_INFO("Query state written (State: %v)", state);
         return true;
     } catch (const std::exception& ex) {

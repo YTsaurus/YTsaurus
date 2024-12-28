@@ -8,6 +8,7 @@ SRCS(
     config.cpp
     dynamic_config_manager.cpp
     handler_base.cpp
+    profiler.cpp
     proxy_service.cpp
     query_tracker.cpp
     query_tracker_proxy.cpp
