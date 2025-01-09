@@ -147,6 +147,8 @@ def add_start_subparser(subparsers):
     parser.set_defaults(func=start_func)
     parser.add_argument("--master-count", type=int, default=1, help="number of masters (default: %(default)s)")
     parser.add_argument("--node-count", type=int, default=1, help="number of nodes (default: %(default)s)")
+    parser.add_argument('--node-flavors', action="append", nargs='+', default=[], choices=["data", "exec", "tablet"],
+                        help="choose node flavors, repeat for each node (default: all nodes have all flavors)")
     parser.add_argument("--scheduler-count", type=int, default=1, help="number of schedulers (default: %(default)s)")
     parser.add_argument("--http-proxy-count", type=int, default=1, help="number of http proxies (default: %(default)s)")
     parser.add_argument("--rpc-proxy-count", type=int, default=0, help="number of rpc proxies (default: %(default)s)")

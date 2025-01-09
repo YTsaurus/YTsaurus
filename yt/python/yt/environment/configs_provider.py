@@ -851,6 +851,9 @@ def _build_node_configs(node_dirs,
     for index in xrange(yt_config.node_count):
         config = default_config.get_node_config()
 
+        if index < len(yt_config.node_flavors):
+            config["flavors"] = yt_config.node_flavors[index]
+
         init_singletons(config, yt_config, index)
 
         init_jaeger_collector(config, "node", {"node_index": str(index)})

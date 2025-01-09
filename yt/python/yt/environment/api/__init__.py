@@ -113,6 +113,7 @@ class LocalYtConfig(object):
     scheduler_count = attr.ib(1)
     controller_agent_count = attr.ib(1)
     node_count = attr.ib(1)
+    node_flavors = attr.ib([])
     chaos_node_count = attr.ib(0)
     http_proxy_count = attr.ib(1)
     rpc_proxy_count = attr.ib(1)

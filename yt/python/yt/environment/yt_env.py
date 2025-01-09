@@ -204,6 +204,8 @@ class YTInstance(object):
             raise YtError("Can't start local YT without master")
         if yt_config.scheduler_count == 0 and yt_config.controller_agent_count != 0:
             raise YtError("Can't start controller agent without scheduler")
+        if yt_config.node_count < len(yt_config.node_flavors):
+            raise YtError("Total node count is less than count of nodes with flavors")
 
         if yt_config.use_porto_for_servers and not porto_available():
             raise YtError("Option use_porto_for_servers is specified but porto is not available")
