@@ -184,12 +184,13 @@ public:
 
     bool EnableReadRequestComplexityLimits;
 
-    //! This throttler controls the rate of local write ObjectService.Execute subrequests
+    //! These throttlers control the rate of local read/write ObjectService.Execute subrequests
     //! from *all* users except root (!) that are allowed to pass through to be scheduled
     //! into the Automaton mutation queue.
-    //! It can be used as a form of mutation congestion control to limit the size of the
-    //! mutation queue insofar as it is induced by users' Execute requests.
-    //! This throttler is acquired simultaneously with per-user request throttling.
+    //! They can be used as a form of mutation congestion control to limit the size of the
+    //! query/mutation queue insofar as it is induced by users' Execute requests.
+    //! These throttlers are acquired simultaneously with per-user request throttling.
+    NConcurrency::TThroughputThrottlerConfigPtr LocalReadRequestThrottler;
     NConcurrency::TThroughputThrottlerConfigPtr LocalWriteRequestThrottler;
 
     REGISTER_YSON_STRUCT(TDynamicObjectServiceConfig);
