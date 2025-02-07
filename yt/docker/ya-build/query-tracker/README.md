@@ -8,7 +8,6 @@ Example:
 
     ```bash
     export YTSAURUS_SOURCE_PATH="$HOME/ytsaurus"
-    export YDB_SOURCE_PATH="$HOME/ydb"
     export YQL_BUILD_PATH="build_yql"
     export BUILD_FLAGS="--thinlto -DCGO_ENABLED=0 -DCFLAGS=-fsized-deallocation --build=relwithdebinfo"
 

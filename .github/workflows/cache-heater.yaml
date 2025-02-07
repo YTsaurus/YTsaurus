@@ -53,31 +53,12 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: ytsaurus
-      - name: Checkout ydb
-        uses: actions/checkout@v3
-        with:
-          repository: ydb-platform/ydb
-          ref: 74ff898ca96053489214acb09862da6bf0bfb428
-          path: ydb
-
-  patch-ya-conf:
-    name: Patch ya conf
-    needs:
-      - checkout
-      - start-vm
-    runs-on: ${{ needs.start-vm.outputs.label }}
-    steps:
-      - name: Patch ya conf
-        run: |
-          cat ./ydb/build/internal/ya.conf | grep -v bazel | grep -v "dist_cache" > ./patched.ya.conf
-          cp ./patched.ya.conf ./ydb/build/internal/ya.conf
 
   build:
     name: Build
     needs:
       - start-vm
       - checkout
-      - patch-ya-conf
     with:
       runs-on-value: ${{ needs.start-vm.outputs.label }}
       cpp-build-system: ya-make

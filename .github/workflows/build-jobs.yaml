@@ -123,38 +123,39 @@ jobs:
       - name: Configure YQL agent (${{ matrix.build-type }})
         if: ${{ inputs.build-query-tracker }}
         run: |
+          #TODO: Update cmake build to yt
           #TODO: install it inside vm image.
-          sudo apt-get -y install antlr3 libaio1 libaio-dev
+          # sudo apt-get -y install antlr3 libaio1 libaio-dev
 
           #TODO: remove -DMKQL_DISABLE_CODEGEN after YT-19852.
-          cd ../build_yql_${{ matrix.build-type }}
-          rm -rf *
-          cmake \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=${{ matrix.cmake-build-type }} \
-            -DCMAKE_C_COMPILER_LAUNCHER=/usr/local/bin/ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=/usr/local/bin/ccache \
-            -DCMAKE_TOOLCHAIN_FILE=../ytsaurus/ydb/clang.toolchain \
+          # cd ../build_yql_${{ matrix.build-type }}
+          # rm -rf *
+          # cmake \
+          #   -G Ninja \
+          #   -DCMAKE_BUILD_TYPE=${{ matrix.cmake-build-type }} \
+          #   -DCMAKE_C_COMPILER_LAUNCHER=/usr/local/bin/ccache \
+          #   -DCMAKE_CXX_COMPILER_LAUNCHER=/usr/local/bin/ccache \
+          #   -DCMAKE_TOOLCHAIN_FILE=../ytsaurus/ydb/clang.toolchain \
 
-            -DCMAKE_C_FLAGS="-O2 -UNDEBUG -DMKQL_DISABLE_CODEGEN" \
-            -DCMAKE_CXX_FLAGS="-O2 -UNDEBUG -DMKQL_DISABLE_CODEGEN" \
-            -DCMAKE_POSITION_INDEPENDENT_CODE=On \
+          #   -DCMAKE_C_FLAGS="-O2 -UNDEBUG -DMKQL_DISABLE_CODEGEN" \
+          #   -DCMAKE_CXX_FLAGS="-O2 -UNDEBUG -DMKQL_DISABLE_CODEGEN" \
+          #   -DCMAKE_POSITION_INDEPENDENT_CODE=On \
 
-            -DCMAKE_C_FLAGS_RELEASE="-O2 -UNDEBUG -DMKQL_DISABLE_CODEGEN" \
-            -DCMAKE_CXX_FLAGS_RELEASE="-O2 -UNDEBUG -DMKQL_DISABLE_CODEGEN" \
+          #   -DCMAKE_C_FLAGS_RELEASE="-O2 -UNDEBUG -DMKQL_DISABLE_CODEGEN" \
+          #   -DCMAKE_CXX_FLAGS_RELEASE="-O2 -UNDEBUG -DMKQL_DISABLE_CODEGEN" \
 
-            -DCMAKE_C_FLAGS_RELWITHDEBINFO="-O2 -UNDEBUG -DMKQL_DISABLE_CODEGEN" \
-            -DCMAKE_CXX_FLAGS_RELWITHDEBINFO="-O2 -UNDEBUG -DMKQL_DISABLE_CODEGEN" \
+          #   -DCMAKE_C_FLAGS_RELWITHDEBINFO="-O2 -UNDEBUG -DMKQL_DISABLE_CODEGEN" \
+          #   -DCMAKE_CXX_FLAGS_RELWITHDEBINFO="-O2 -UNDEBUG -DMKQL_DISABLE_CODEGEN" \
 
-            ../ytsaurus/ydb
+          #   ../ytsaurus/ydb
 
-          ccache --set-config base_dir="$(realpath ..)"
-          ccache --set-config remote_only=true
-          ccache --set-config remote_storage="http://${{ secrets.BUILD_CACHE_BAZEL_USERNAME }}:${{ secrets.BUILD_CACHE_BAZEL_PASSWORD }}@${{ vars.BUILD_CACHE_BAZEL_HOST }}|layout=bazel"
+          # ccache --set-config base_dir="$(realpath ..)"
+          # ccache --set-config remote_only=true
+          # ccache --set-config remote_storage="http://${{ secrets.BUILD_CACHE_BAZEL_USERNAME }}:${{ secrets.BUILD_CACHE_BAZEL_PASSWORD }}@${{ vars.BUILD_CACHE_BAZEL_HOST }}|layout=bazel"
 
-          if [ "${{ inputs.update-remote-cache }}" == "false" ]; then
-            ccache --set-config read_only=true
-          fi
+          # if [ "${{ inputs.update-remote-cache }}" == "false" ]; then
+          #   ccache --set-config read_only=true
+          # fi
 
       - name: Build Python packages (cmake, ${{ matrix.build-type }})
         if: ${{ inputs.build-python }}
@@ -336,12 +337,12 @@ jobs:
         run: |
           cd ../build_yql_${{ inputs.cpp-build-system}}_${{ matrix.build-type }}
 
+          # TODO(mpereskokova) ask nadya73
           # TODO(nadya73): Remove it after ya fix.
-          cat ../ytsaurus/ydb/build/internal/ya.conf | grep -v bazel | grep -v "dist_cache" > ./patched.ya.conf
-          cp ./patched.ya.conf ../ytsaurus/ydb/build/internal/ya.conf
+          # cat ../ytsaurus/ydb/build/internal/ya.conf | grep -v bazel | grep -v "dist_cache" > ./patched.ya.conf
+          # cp ./patched.ya.conf ../ytsaurus/ydb/build/internal/ya.conf
 
           export YTSAURUS_SOURCE_PATH="$(realpath $(pwd)/../ytsaurus/ytsaurus)"
-          export YDB_SOURCE_PATH="$(realpath $(pwd)/../ytsaurus/ydb)"
           export YQL_BUILD_PATH="."
           export BUILD_FLAGS="${{ steps.vars.outputs.BUILD_FLAGS }} -DSTRIP=${{ steps.vars.outputs.STRIP_VALUE }}"
 

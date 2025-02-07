@@ -49,13 +49,6 @@ jobs:
         with:
           path: ytsaurus
 
-      - name: Checkout ydb
-        uses: actions/checkout@v3
-        with:
-          repository: ydb-platform/ydb
-          ref: 74ff898ca96053489214acb09862da6bf0bfb428
-          path: ydb
-
   build:
     name: Build
     needs:

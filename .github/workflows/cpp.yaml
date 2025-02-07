@@ -3,8 +3,7 @@ name: C++ CI
 on:
   push:
     branches:
-      - main
-      - stable/[0-9]+\.[0-9]+
+      - members/mpereskokova/no-ydb
 
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
@@ -49,13 +48,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: ytsaurus
-
-      - name: Checkout ydb
-        uses: actions/checkout@v3
-        with:
-          repository: ydb-platform/ydb
-          ref: 74ff898ca96053489214acb09862da6bf0bfb428
-          path: ydb
 
   tag:
     name: Calculate docker tag
@@ -233,25 +225,3 @@ jobs:
           github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
           label: ${{ needs.start-vm.outputs.label }}
           instance-id: ${{ needs.start-vm.outputs.instance-id }}
-
-  send-notifications:
-    name: Send notifications
-    needs:
-      - stop-vm
-    runs-on: ubuntu-latest
-    if: ${{ failure() }}
-    steps:
-      - name: Send telegram message
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_TOKEN }}
-          disable_web_page_preview: true
-          format: markdown
-          message: |
-            Workflow *${{github.workflow}}* failed: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}.
-            Git ${{github.ref_type}}: *${{github.ref_name}}*.
-            Commit:
-            ```
-            ${{github.event.head_commit.message}}
-            ```

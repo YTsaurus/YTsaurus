@@ -46,7 +46,7 @@
         {
             "source": {
                 "type": "RELATIVE",
-                "path": "build_yql/ydb/library/yql/yt/dq_vanilla_job/dq_vanilla_job",
+                "path": "build_yql/yt/yql/dq_vanilla_job/dq_vanilla_job",
             },
             "destination": {
                 "path": "/",
@@ -55,7 +55,7 @@
         {
             "source": {
                 "type": "RELATIVE",
-                "path": "build_yql/ydb/library/yql/yt/dq_vanilla_job.lite/dq_vanilla_job.lite",
+                "path": "build_yql/yt/yql/dq_vanilla_job.lite/dq_vanilla_job.lite",
             },
             "destination": {
                 "path": "/",

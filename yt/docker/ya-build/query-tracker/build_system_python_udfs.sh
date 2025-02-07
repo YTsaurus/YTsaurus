@@ -4,14 +4,12 @@
 # It is a separate script because it depends on environment(local pythons).
 
 # Required environment variables:
-# YDB_SOURCE_PATH - path to the ydb source root.
 # YQL_BUILD_PATH - path to the build directory. All artifacts will be placed here.
 # BUILD_FLAGS - flags to pass to ya make when building.
 
 set -eux
 shopt -s expand_aliases
 
-export YDB_SOURCE_PATH=$(realpath $YDB_SOURCE_PATH)
 export YQL_BUILD_PATH=$(realpath $YQL_BUILD_PATH)
 
 mkdir -p $YQL_BUILD_PATH
@@ -37,7 +35,7 @@ do
     ln -s $(dirname ${INCLUDES})/${ARCH}/$(basename ${INCLUDES}) ${INCLUDES}/${ARCH};
   fi
 
-  python3 $YDB_SOURCE_PATH/ya make $YDB_SOURCE_PATH/yql/essentials/udfs/common/python/system_python/${udf_name} \
+  python3 $YTSAURUS_SOURCE_PATH/ya make $YTSAURUS_SOURCE_PATH/yql/essentials/udfs/common/python/system_python/${udf_name} \
     -T ${BUILD_FLAGS} --ignore-recurses -DSTRIP=yes -DUSE_ARCADIA_PYTHON=no -DUSE_LOCAL_PYTHON -DPYTHON_CONFIG=${python_name}-config -DPYTHON_BIN=${python_name} --output $YQL_BUILD_PATH
   if [[ "$BUILD_FLAGS" != *"--bazel-remote-put"* ]]; then
     strip --remove-section=.gnu_debuglink $YQL_BUILD_PATH/yql/essentials/udfs/common/python/system_python/${udf_name}/libsystem${udf_name}_udf.so
