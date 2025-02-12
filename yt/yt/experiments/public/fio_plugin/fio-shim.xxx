@@ -1,0 +1,240 @@
+//
+// This is shim code between fio and cpp fio plugin.
+// It preprocessed with fio and system headers and build separately.
+//
+// See https://github.com/axboe/fio/blob/master/engines/skeleton_external.c
+//
+
+#include <stdint.h>
+#include <unistd.h>
+
+#include <config-host.h>
+#include <optgroup.h>
+#include <fio.h>
+
+#undef min
+#undef max
+
+#include "plugin.hpp"
+
+using namespace NYT::NFio;
+
+static struct fio_option OptionsTable[] = {
+    {
+        .name = "ytsaurus-config",
+        .lname = "YTsaurus config",
+        .type = FIO_OPT_STR_STORE,
+        .off1 = offsetof(TPluginOptions, Config),
+        .help = "YTsaurus config file in YSON format",
+        .category = FIO_OPT_C_ENGINE,
+        .group = FIO_OPT_G_INVALID,
+    },
+    {
+        .name = "ytsaurus-config-patch",
+        .lname = "YTsaurus config patch",
+        .type = FIO_OPT_STR_STORE,
+        .off1 = offsetof(TPluginOptions, ConfigPatch),
+        .help = "YTsaurus plugin config patch in YSON format",
+        .category = FIO_OPT_C_ENGINE,
+        .group = FIO_OPT_G_INVALID,
+    },
+    {
+        .name = "print-ytsaurus-config",
+        .lname = "Print YTsaurus config",
+        .type = FIO_OPT_BOOL,
+        .off1 = offsetof(TPluginOptions, PrintConfig),
+        .help = "Print resuling YTsaurus config with defaults",
+        .def = "0",
+        .category = FIO_OPT_C_ENGINE,
+        .group = FIO_OPT_G_INVALID,
+    },
+    {
+        .name = "print-ytsaurus-config-schema",
+        .lname = "Print YTsaurus config schema",
+        .type = FIO_OPT_BOOL,
+        .off1 = offsetof(TPluginOptions, PrintConfigSchema),
+        .help = "Print YTsaurus config schema in YSON format",
+        .def = "0",
+        .category = FIO_OPT_C_ENGINE,
+        .group = FIO_OPT_G_INVALID,
+    },
+    {
+        .name = NULL,
+    },
+};
+
+static inline IThread* ToThread(struct thread_data* td)
+{
+    return static_cast<IThread*>(td->io_ops_data);
+}
+
+static inline TFile* ToFile(struct fio_file* f)
+{
+    return static_cast<TFile*>(f->engine_data);
+}
+
+static int InitThread(struct thread_data* td)
+{
+    auto* thread = GetThread(
+        *static_cast<TPluginOptions*>(td->eo),
+        TThreadOptions {
+            .JobName = td->o.name,
+            .JobIndex = td->subjob_number,
+            .IODepth = td->o.iodepth,
+            .NumFiles = td->o.nr_files,
+        });
+    td->io_ops_data = static_cast<void*>(thread);
+    return 0;
+}
+
+static void CleanupThread(struct thread_data* td)
+{
+    auto* thread = ToThread(td);
+    td->io_ops_data = NULL;
+    thread->Put();
+}
+
+static int OpenFile(struct thread_data* td, struct fio_file* f)
+{
+    auto* thread = ToThread(td);
+    auto* file = thread->OpenFile(
+        f->file_name,
+        TFileOptions{
+            .Append = bool(td->o.file_append),
+            .Atomic = bool(td->o.oatomic),
+            .Create = td->o.create_on_open && td->o.allow_create,
+            .Direct = bool(td->o.odirect),
+            .Read = bool(td_read(td)),
+            .Random = bool(td_random(td)),
+            .Trim = bool(td_trim(td)),
+            .Write = bool(td_write(td)),
+            .FileOffset = f->file_offset,
+            .IOSize = f->io_size,
+        });
+    f->engine_data = static_cast<void*>(file);
+    return 0;
+}
+
+static int CloseFile(struct thread_data* td, struct fio_file* f)
+{
+    auto* thread = ToThread(td);
+    auto* file = ToFile(f);
+    f->engine_data = NULL;
+    thread->CloseFile(file);
+    return 0;
+}
+
+static int UnlinkFile(struct thread_data* td, struct fio_file* f)
+{
+    return ToThread(td)->UnlinkFile(f->file_name, ToFile(f));
+}
+
+static int GetFileSize(struct thread_data* td, struct fio_file* f)
+{
+    auto* thread = ToThread(td);
+    if (thread) {
+        auto size = ToThread(td)->GetFileSize(f->file_name, ToFile(f));
+        if (size >=0) {
+            f->real_file_size = size;
+            fio_file_set_size_known(f);
+        }
+    }
+    return 0;
+}
+
+static int InitIO(struct thread_data *td, struct io_u *io_u)
+{
+    return 0;
+}
+
+static void FreeIO(struct thread_data *td, struct io_u *io_u)
+{
+}
+
+static int PrepareIO(struct thread_data* td, struct io_u* io_u)
+{
+    auto* thread = ToThread(td);
+    return thread->Prepare(
+        ToFile(io_u->file),
+        static_cast<EOperation>(io_u->ddir));
+}
+
+static enum fio_q_status QueueIO(struct thread_data* td, struct io_u* io_u)
+{
+    auto* thread = ToThread(td);
+
+    auto result = thread->Queue(
+        ToFile(io_u->file),
+        static_cast<EOperation>(io_u->ddir),
+        io_u->xfer_buf,
+        io_u->xfer_buflen,
+        io_u->offset,
+        reinterpret_cast<uintptr_t>(io_u));
+    if (result.Status == EOperationStatus::Completed) {
+        io_u->error = result.Error;
+        io_u->resid = result.Residual;
+    }
+    return static_cast<enum fio_q_status>(result.Status);
+}
+
+static int CommitIO(struct thread_data* td)
+{
+    return ToThread(td)->Commit();
+}
+
+static int GetIOEvents(struct thread_data* td, unsigned int min, unsigned int max, const struct timespec* timeout)
+{
+    return ToThread(td)->GetEvents(min, max, timeout);
+}
+
+static struct io_u* GetIOResult(struct thread_data* td, int event)
+{
+    auto result = ToThread(td)->GetResult(event);
+    auto* io_u = reinterpret_cast<struct io_u*>(result.IO);
+    io_u->error = result.Error;
+    io_u->resid = result.Residual;
+    return io_u;
+}
+
+static int CancelIO(struct thread_data* td, struct io_u* io_u)
+{
+    return ToThread(td)->Cancel(ToFile(io_u->file));
+}
+
+static int InvalidateFile(struct thread_data* td, struct fio_file* f)
+{
+    return 0;
+}
+
+static struct ioengine_ops IOEngine = {
+    .name = "ytsaurus",
+    .version = FIO_IOOPS_VERSION,
+    .flags = FIO_DISKLESSIO | FIO_UNIDIR | FIO_PIPEIO | FIO_NO_CONCURRENT_FILE_IO,
+    .init = InitThread,
+    .prep = PrepareIO,
+    .queue = QueueIO,
+    .commit = CommitIO,
+    .getevents = GetIOEvents,
+    .event = GetIOResult,
+    .cancel = CancelIO,
+    .cleanup = CleanupThread,
+    .open_file = OpenFile,
+    .close_file = CloseFile,
+    .invalidate = InvalidateFile,
+    .unlink_file = UnlinkFile,
+    .get_file_size = GetFileSize,
+    .io_u_init = InitIO,
+    .io_u_free = FreeIO,
+    .option_struct_size = sizeof(TPluginOptions),
+    .options = OptionsTable,
+};
+
+extern "C" {
+
+void get_ioengine(struct ioengine_ops** ioengine_ptr)
+{
+    *ioengine_ptr = &IOEngine;
+}
+
+}
+
