@@ -91,50 +91,12 @@ jobs:
       BUILD_CACHE_BAZEL_PASSWORD: ${{ secrets.BUILD_CACHE_BAZEL_PASSWORD }}
     uses: ./.github/workflows/build-jobs.yaml
 
-  build-cmake:
-    name: Build with cmake
-    needs:
-      - start-vm
-      - checkout
-      - build-strawberry
-    with:
-      runs-on-value: ${{ needs.start-vm.outputs.label }}
-      cpp-build-system: cmake
-      build-ytsaurus: true
-      build-chyt: ${{ github.ref_name == 'main' }}
-      build-python: true
-      update-remote-cache: true
-    secrets:
-      BUILD_CACHE_BAZEL_USERNAME: ${{ secrets.BUILD_CACHE_BAZEL_USERNAME }}
-      BUILD_CACHE_BAZEL_PASSWORD: ${{ secrets.BUILD_CACHE_BAZEL_PASSWORD }}
-    uses: ./.github/workflows/build-jobs.yaml
-
-  docker-cmake:
-    name: Docker images with cmake
-    needs:
-      - start-vm
-      - tag
-      - build-cmake
-      - build-strawberry
-    with:
-      runs-on-value: ${{ needs.start-vm.outputs.label }}
-      cpp-build-system: cmake
-      publish-ytsaurus: true
-      publish-chyt: ${{ github.ref_name == 'main' }}
-      publish-strawberry: ${{ github.ref_name == 'main' }}
-      image-tag: ${{ needs.tag.outputs.image-tag }}
-      nightly-image-tag: ${{ needs.tag.outputs.nightly-image-tag }}
-    secrets:
-      GH_PERSONAL_ACCESS_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
-      GH_USERNAME: ${{ secrets.GH_USERNAME }}
-    uses: ./.github/workflows/docker-jobs.yaml
-
   build-ya-make:
     name: Build with ya-make
     needs:
       - start-vm
       - checkout
-      - docker-cmake
+      - docker-strawberry
     with:
       runs-on-value: ${{ needs.start-vm.outputs.label }}
       cpp-build-system: ya-make
@@ -166,54 +128,11 @@ jobs:
       GH_USERNAME: ${{ secrets.GH_USERNAME }}
     uses: ./.github/workflows/docker-jobs.yaml
 
-  check:
-    name: Check
-    needs:
-      - start-vm
-      - build-cmake
-      - build-ya-make
-      - docker-cmake
-    with:
-      runs-on-value: ${{ needs.start-vm.outputs.label }}
-    uses: ./.github/workflows/check-jobs.yaml
-
-  systest:
-    name: systest
-    if: github.ref_name == 'main'
-    needs:
-      - start-vm
-      - tag
-      - check
-      - docker-ya-make
-    runs-on: ${{ needs.start-vm.outputs.label }}
-    steps:
-      - name: Mark latest nightly
-        run: |
-          if [[ ${{ needs.tag.outputs.image-tag }} == 'dev' ]]
-          then
-            NIGHTLY_IMAGE_TAG=${{ needs.tag.outputs.nightly-image-tag }}-relwithdebinfo
-            docker tag ghcr.io/ytsaurus/ytsaurus-nightly:${NIGHTLY_IMAGE_TAG} ghcr.io/ytsaurus/ytsaurus-nightly:latest
-            docker push ghcr.io/ytsaurus/ytsaurus-nightly:latest
-          fi
-
-      - name: Download benchmarks
-        uses: robinraju/release-downloader@v1.8
-        with:
-          latest: true
-          fileName: "benchmark-0.0.1.tgz"
-
-      - name: Docker systest
-        shell: bash
-        run: |
-          mkdir -p ../docker-systest-build
-          bash ./ytsaurus/yt/docker/systest/build.sh --ytsaurus-source-path $(pwd)/ytsaurus --ytsaurus-build-path ../build --output-path ../docker-systest-build --image-tag latest --image-cr ghcr.io/
-          docker push ghcr.io/ytsaurus/ytsaurus-systest:latest
-
   stop-vm:
     name: Stop VM
     needs:
       - start-vm
-      - systest
+      - docker-ya-make
     runs-on: trampoline
     if: ${{ always() }}
     steps:
