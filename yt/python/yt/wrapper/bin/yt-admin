@@ -11,24 +11,8 @@ import yt.wrapper as yt
 from argparse import ArgumentParser
 
 
-def build_snapshot(*args, **kwargs):
-    print(get_driver_instance(None).build_snapshot(*args, **kwargs))
-
-
-def build_master_snapshots(*args, **kwargs):
-    print(get_driver_instance(None).build_master_snapshots(*args, **kwargs))
-
-
 def get_master_consistent_state(*args, **kwargs):
     get_driver_instance(None).get_master_consistent_state(*args, **kwargs)
-
-
-def exit_read_only(*args, **kwargs):
-    get_driver_instance(None).exit_read_only(*args, **kwargs)
-
-
-def master_exit_read_only(*args, **kwargs):
-    get_driver_instance(None).master_exit_read_only(*args, **kwargs)
 
 
 def discombobulate_nonvoting_peers(*args, **kwargs):
@@ -85,14 +69,14 @@ def main():
     build_snapshot_parser = subparsers.add_parser(
         "build-snapshot",
         help="Build snapshot for a given cell (either master or tablet)")
-    build_snapshot_parser.set_defaults(func=build_snapshot)
+    build_snapshot_parser.set_defaults(func=yt.build_snapshot)
     build_snapshot_parser.add_argument("--cell-id", required=True)
     add_set_readonly_parser(build_snapshot_parser)
     add_wait_for_snapshot_completion_parser(build_snapshot_parser)
 
     build_master_snapshot_parser = subparsers.add_parser("build-master-snapshots",
                                                          help="Build snapshots for all master cells")
-    build_master_snapshot_parser.set_defaults(func=build_master_snapshots)
+    build_master_snapshot_parser.set_defaults(func=yt.build_master_snapshots)
     add_set_readonly_parser(build_master_snapshot_parser)
     add_wait_for_snapshot_completion_parser(build_master_snapshot_parser)
     build_master_snapshot_parser.add_argument("--retry", action="store_true", default=True)
@@ -102,12 +86,12 @@ def main():
     get_master_consistent_state_parser.set_defaults(func=get_master_consistent_state)
 
     exit_read_only_parser = subparsers.add_parser("exit-read-only", help="Exit read-only mode at given cell")
-    exit_read_only_parser.set_defaults(func=exit_read_only)
+    exit_read_only_parser.set_defaults(func=yt.exit_read_only)
     exit_read_only_parser.add_argument("--cell-id", required=True)
 
     master_exit_read_only_parser = subparsers.add_parser("master-exit-read-only",
                                                          help="Exit read-only at all master cells")
-    master_exit_read_only_parser.set_defaults(func=master_exit_read_only)
+    master_exit_read_only_parser.set_defaults(func=yt.master_exit_read_only)
     master_exit_read_only_parser.add_argument("--retry", action="store_true", default=True)
 
     discombobulate_nonvoting_peers_parser = subparsers.add_parser("discombobulate-nonvoting-peers",

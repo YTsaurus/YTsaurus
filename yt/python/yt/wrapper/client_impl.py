@@ -392,6 +392,27 @@ class YtClient(ClientState):
             function, data,
             client=self)
 
+    def build_master_snapshots(
+            self,
+            set_read_only=None, wait_for_snapshot_completion=None, retry=None):
+        """
+        Build snapshots for all master cells.
+        """
+        return client_api.build_master_snapshots(
+            client=self,
+            set_read_only=set_read_only, wait_for_snapshot_completion=wait_for_snapshot_completion,
+            retry=retry)
+
+    def build_snapshot(
+            self,
+            cell_id=None, set_read_only=None, wait_for_snapshot_completion=None):
+        """
+        Builds snapshot of a given cell.
+        """
+        return client_api.build_snapshot(
+            client=self,
+            cell_id=cell_id, set_read_only=set_read_only, wait_for_snapshot_completion=wait_for_snapshot_completion)
+
     def check_permission(
             self,
             user, permission, path,
@@ -797,6 +818,16 @@ class YtClient(ClientState):
             path,
             client=self,
             read_from=read_from, cache_sticky_group_size=cache_sticky_group_size, suppress_transaction_coordinator_sync=suppress_transaction_coordinator_sync)
+
+    def exit_read_only(
+            self,
+            cell_id=None):
+        """
+        Exit read-only at given master cell.
+        """
+        return client_api.exit_read_only(
+            client=self,
+            cell_id=cell_id)
 
     def explain_query(
             self,
@@ -1617,6 +1648,16 @@ class YtClient(ClientState):
             enable_partial_result=enable_partial_result, use_lookup_cache=use_lookup_cache, format=format,
             raw=raw, versioned=versioned, retention_timestamp=retention_timestamp, versioned_read_options=versioned_read_options,
             with_timestamps=with_timestamps)
+
+    def master_exit_read_only(
+            self,
+            retry=None):
+        """
+        Exits read-only mode at all master cells.
+        """
+        return client_api.master_exit_read_only(
+            client=self,
+            retry=retry)
 
     def mkdir(
             self,

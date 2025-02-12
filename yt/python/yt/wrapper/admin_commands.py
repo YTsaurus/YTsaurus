@@ -5,13 +5,30 @@ from .errors import YtError
 from .yson import YsonMap
 
 
-def build_snapshot(cell_id=None, client=None):
+def build_snapshot(cell_id=None, set_read_only=None, wait_for_snapshot_completion=None, client=None):
     """Builds snapshot of a given cell."""
     params = {
         "cell_id": cell_id,
     }
+    if set_read_only is not None:
+        params["set_read_only"] = set_read_only
+    if wait_for_snapshot_completion is not None:
+        params["wait_for_snapshot_completion"] = wait_for_snapshot_completion
 
     return make_request("build_snapshot", params=params, client=client)
+
+
+def build_master_snapshots(set_read_only=None, wait_for_snapshot_completion=None, retry=None, client=None):
+    """Build snapshots for all master cells."""
+    params = {}
+    if set_read_only is not None:
+        params["set_read_only"] = set_read_only
+    if wait_for_snapshot_completion is not None:
+        params["wait_for_snapshot_completion"] = wait_for_snapshot_completion
+    if retry is not None:
+        params["retry"] = retry
+
+    return make_request("build_master_snapshots", params=params, client=client)
 
 
 def exit_read_only(cell_id=None, client=None):
@@ -21,6 +38,15 @@ def exit_read_only(cell_id=None, client=None):
     }
 
     return make_request("exit_read_only", params=params, client=client)
+
+
+def master_exit_read_only(retry=None, client=None):
+    """Exits read-only mode at all master cells."""
+    params = {}
+    if retry is not None:
+        params["retry"] = retry
+
+    return make_request("master_exit_read_only", params=params, client=client)
 
 
 def discombobulate_nonvoting_peers(cell_id=None, client=None):
