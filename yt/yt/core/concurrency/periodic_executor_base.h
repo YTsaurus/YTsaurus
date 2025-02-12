@@ -15,12 +15,12 @@ namespace NYT::NConcurrency::NDetail {
 //! and have a function to process given result.
 template <class T>
 concept CCallbackResultProcessor =
-    requires {
+    (requires {
         typename T::TCallbackResult;
     } && (std::is_void_v<typename T::TCallbackResult> &&
     requires (T processor) {
         processor.ProcessResult();
-    }) || (!std::is_void_v<typename T::TCallbackResult> &&
+    })) || (!std::is_void_v<typename T::TCallbackResult> &&
     requires (T processor, typename T::TCallbackResult result) {
         processor.ProcessResult(std::move(result));
     });
