@@ -124,7 +124,9 @@ class OperationsArchiver(object):
         "error",
         "job_type",
         "state",
+        # TODO(aleksandr.gaev): Remove.
         "address",
+        "addresses",
         "uncompressed_data_size",
         "error",
         "size",
@@ -234,7 +236,9 @@ class OperationsArchiver(object):
             row["error"] = attributes.get("error")
             row["type" if self.version >= 6 else "job_type"] = attributes["job_type"]
             row["state"] = attributes["state"]
+            # TODO(aleksandr.gaev): Remove.
             row["address"] = attributes["address"]
+            row["addresses"] = attributes["addresses"]
             row["start_time"] = date_string_to_timestamp_mcs(attributes["start_time"])
             row["finish_time"] = date_string_to_timestamp_mcs(attributes["finish_time"])
 

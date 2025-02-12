@@ -136,9 +136,16 @@ TNodeJobReport TNodeJobReport::MonitoringDescriptor(TString monitoringDescriptor
     return std::move(*this);
 }
 
+// TODO(aleksandr.gaev): Remove.
 TNodeJobReport TNodeJobReport::Address(std::optional<std::string> address)
 {
     Address_ = address;
+    return std::move(*this);
+}
+
+TNodeJobReport TNodeJobReport::Addresses(std::optional<NNodeTrackerClient::TAddressMap> addresses)
+{
+    Addresses_ = addresses;
     return std::move(*this);
 }
 

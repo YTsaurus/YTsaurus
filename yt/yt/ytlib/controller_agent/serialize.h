@@ -45,6 +45,7 @@ DEFINE_ENUM(ESnapshotVersion,
     ((TableWriteBufferEstimation)            (301705))
     ((OperationIncarnationIsOptional)        (301706))
     ((GroupedNeededResources)                (301707))
+    ((AddAddressesToJob)                     (301708))
 );
 
 ////////////////////////////////////////////////////////////////////////////////

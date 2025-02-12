@@ -3942,7 +3942,9 @@ void TOperationControllerBase::BuildJobAttributes(
     fluent
         .Item("job_type").Value(joblet->JobType)
         .Item("state").Value(state)
+        // TODO(aleksandr.gaev): Replace with GetDefaultAddress(joblet->NodeDescriptor.Addresses).
         .Item("address").Value(joblet->NodeDescriptor.Address)
+        .Item("addresses").Value(joblet->NodeDescriptor.Addresses)
         .Item("start_time").Value(joblet->StartTime)
         .Item("account").Value(joblet->DebugArtifactsAccount)
         .Item("progress").Value(joblet->Progress)
@@ -11106,7 +11108,9 @@ void TOperationControllerBase::HandleJobReport(const TJobletPtr& joblet, TContro
         jobReport
             .OperationId(OperationId)
             .JobId(joblet->JobId)
+            // TODO(aleksandr.gaev): Remove.
             .Address(joblet->NodeDescriptor.Address)
+            .Addresses(joblet->NodeDescriptor.Addresses)
             .Ttl(joblet->ArchiveTtl));
 }
 

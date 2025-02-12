@@ -32,7 +32,9 @@ public:
     TNodeJobReport ExecAttributes(const NYson::TYsonString& execAttributes);
     TNodeJobReport TreeId(TString treeId);
     TNodeJobReport MonitoringDescriptor(TString monitoringDescriptor);
+    // TODO(aleksandr.gaev): Remove.
     TNodeJobReport Address(std::optional<std::string> address);
+    TNodeJobReport Addresses(std::optional<NNodeTrackerClient::TAddressMap> addresses);
     TNodeJobReport ArchiveFeatures(const NYson::TYsonString& archiveFeatures);
 
     void SetStatistics(const NYson::TYsonString& statistics);

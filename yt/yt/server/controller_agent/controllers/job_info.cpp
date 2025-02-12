@@ -25,7 +25,9 @@ using namespace NYTree;
 
 TJobNodeDescriptor::TJobNodeDescriptor(const TExecNodeDescriptorPtr& other)
     : Id(other->Id)
+    // TODO(aleksandr.gaev): Remove.
     , Address(other->Address)
+    , Addresses(other->Addresses)
     , IOWeight(other->IOWeight)
 { }
 
@@ -34,8 +36,13 @@ void TJobNodeDescriptor::Persist(const TPersistenceContext& context)
     using NYT::Persist;
 
     Persist(context, Id);
+    // TODO(aleksandr.gaev): Remove.
     Persist(context, Address);
     Persist(context, IOWeight);
+
+    if (context.GetVersion() >= ESnapshotVersion::AddAddressesToJob) {
+        Persist(context, Addresses);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

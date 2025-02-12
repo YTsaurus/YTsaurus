@@ -12,12 +12,14 @@ import "yt/ytlib/controller_agent/proto/controller_agent_service.proto";
 message TExecNodeDescriptor
 {
     required uint32 node_id = 1;
+    // TODO(aleksandr.gaev): Remove.
     required string address = 2;
     required double io_weight = 3;
     required bool online = 6;
     required TJobResources resource_limits = 4;
     required NNodeTrackerClient.NProto.TDiskResources disk_resources = 7;
     repeated string tags = 5;
+    optional NNodeTrackerClient.NProto.TAddressMap addresses = 8;
 }
 
 message TExecNodeDescriptorList
