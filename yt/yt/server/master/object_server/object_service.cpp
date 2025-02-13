@@ -1663,11 +1663,17 @@ private:
 
             if constexpr (SubrequestType == EExecutionSessionSubrequestType::LocalRead) {
                 if (User_.Get() != securityManager->GetRootUser()) {
-                    throttlerFuture = AllSucceeded(std::vector{throttlerFuture, Owner_->LocalReadRequestThrottler_->Throttle(1)});
+                    throttlerFuture = AllSucceeded(std::vector{throttlerFuture, Owner_->LocalReadRequestThrottler_->Throttle(1)}, {
+                        .PropagateCancelationToInput = false,
+                        .CancelInputOnShortcut = false,
+                    });
                 }
             } else if constexpr (SubrequestType == EExecutionSessionSubrequestType::LocalWrite) {
                 if (User_.Get() != securityManager->GetRootUser()) {
-                    throttlerFuture = AllSucceeded(std::vector{throttlerFuture, Owner_->LocalWriteRequestThrottler_->Throttle(1)});
+                    throttlerFuture = AllSucceeded(std::vector{throttlerFuture, Owner_->LocalWriteRequestThrottler_->Throttle(1)}, {
+                        .PropagateCancelationToInput = false,
+                        .CancelInputOnShortcut = false,
+                    });
                 }
             }
 
