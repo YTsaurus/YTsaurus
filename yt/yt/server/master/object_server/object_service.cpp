@@ -1661,20 +1661,18 @@ private:
 
             auto throttlerFuture = securityManager->ThrottleUser(User_.Get(), 1, WorkloadType);
 
-            if constexpr (SubrequestType == EExecutionSessionSubrequestType::LocalRead) {
-                if (User_.Get() != securityManager->GetRootUser()) {
-                    throttlerFuture = AllSucceeded(std::vector{throttlerFuture, Owner_->LocalReadRequestThrottler_->Throttle(1)}, {
-                        .PropagateCancelationToInput = false,
-                        .CancelInputOnShortcut = false,
-                    });
+            if (User_.Get() != securityManager->GetRootUser()) {
+                TFuture<void> localThrottlerFuture;
+                if constexpr (SubrequestType == EExecutionSessionSubrequestType::LocalRead) {
+                    localThrottlerFuture = Owner_->LocalReadRequestThrottler_->Throttle(1);
+                } else {
+                    static_assert(SubrequestType == EExecutionSessionSubrequestType::LocalWrite);
+                    localThrottlerFuture = Owner_->LocalWriteRequestThrottler_->Throttle(1);
                 }
-            } else if constexpr (SubrequestType == EExecutionSessionSubrequestType::LocalWrite) {
-                if (User_.Get() != securityManager->GetRootUser()) {
-                    throttlerFuture = AllSucceeded(std::vector{throttlerFuture, Owner_->LocalWriteRequestThrottler_->Throttle(1)}, {
-                        .PropagateCancelationToInput = false,
-                        .CancelInputOnShortcut = false,
-                    });
-                }
+                throttlerFuture = AllSucceeded(std::vector{throttlerFuture, localThrottlerFuture}, {
+                    .PropagateCancelationToInput = false,
+                    .CancelInputOnShortcut = false,
+                });
             }
 
             if (!WaitForAndContinue(throttlerFuture)) {
