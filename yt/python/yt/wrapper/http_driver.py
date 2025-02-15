@@ -284,6 +284,10 @@ def make_request(command_name,
         if content_encoding != "identity" and not is_data_compressed:
             data = get_compressor(content_encoding)(data)
 
+    impersonation_user = get_config(client).get("impersonation_user")
+    if impersonation_user is not None:
+        headers["X-YT-User-Name"] = impersonation_user
+
     stream = use_framing or (command.output_type in ["binary", "tabular"])
     response = make_request_with_retries(
         command.http_method(),

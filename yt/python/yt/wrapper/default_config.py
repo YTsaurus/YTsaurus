@@ -227,6 +227,13 @@ default_config = {
     # Set to yt.wrapper.tvm.ServiceTicketAuth(tvm_client) or yt.wrapper.tvm.UserTicketFixedAuth()
     "tvm_auth": None,
 
+    # This option allows the client to impersonate another user.
+    # Setting this option is only allowed for superusers that are not banned,
+    # all other attempts at impersonation will result in an authorization error.
+    # For now only the HTTP driver supports option, in the RPC driver it is ignored.
+    # If you are using the native driver, use the `driver_user_name` option below instead.
+    "impersonation_user": None,
+
     # Force using this version of api.
     "api_version": None,
 
