@@ -84,6 +84,14 @@ type Config struct {
 	// If Credentials are not set, OAuth token is used.
 	Credentials Credentials
 
+	// ImpersonationUser allows the client to impersonate another user.
+	//
+	// This behaviour is only allowed for superusers that are not banned.
+	// If not set, no impersonation is performed.
+	//
+	// Only relevant for HTTP client.
+	ImpersonationUser string
+
 	// TVMFn is used to issue service tickets for YT API requests.
 	//
 	// TVM is a preferred way of service authentication.

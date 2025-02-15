@@ -22,6 +22,7 @@ func TestAuthClient(t *testing.T) {
 		{Name: "SetUserPassword", Test: suite.TestSetUserPassword, SkipRPC: true},
 		{Name: "IssueListRevokeToken", Test: suite.TestIssueListRevokeToken, SkipRPC: true},
 		{Name: "WhoAmI", Test: suite.TestWhoAmI, SkipRPC: true},
+		{Name: "YqlAgentImpersonation", Test: suite.TestYqlAgentImpersonation, SkipRPC: true},
 	})
 }
 
@@ -82,6 +83,28 @@ func (s *Suite) TestWhoAmI(ctx context.Context, t *testing.T, yc yt.Client) {
 
 	// TODO(wilwell) Remove "root" from the acceptable options. It's either "root" if auth is disabled, or user otherwise.
 	require.Contains(t, []string{"root", user}, res.Login)
+}
+
+// TODO(achulkov2): Test new impersonation options once they are available in the ytsaurus/local image.
+// For now we test the existing behaviour available only for the yql_agent user.
+func (s *Suite) TestYqlAgentImpersonation(ctx context.Context, t *testing.T, yc yt.Client) {
+	yqlAgentUser := "yql_agent"
+	_ = s.CreateUser(ctx, t, yqlAgentUser)
+
+	token, err := yc.IssueToken(ctx, yqlAgentUser, "", nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, token)
+
+	userToImpersonate := "user-to-impersonate-" + guid.New().String()
+	_ = s.CreateUser(ctx, t, userToImpersonate)
+
+	clientWithImpersonation, err := ythttp.NewClient(&yt.Config{Proxy: os.Getenv("YT_PROXY"), ImpersonationUser: userToImpersonate, Token: token, Logger: s.L})
+	require.NoError(t, err)
+
+	res, err := clientWithImpersonation.WhoAmI(ctx, nil)
+	require.NoError(t, err)
+
+	require.Equal(t, userToImpersonate, res.Login)
 }
 
 func encodeSHA256(input string) string {
