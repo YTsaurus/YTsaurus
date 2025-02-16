@@ -64,13 +64,7 @@ private:
 
         context->SubscribeCanceled(BIND([=, this, this_ = MakeStrong(this)] (const TError& error) {
             YT_LOG_INFO(error, "Query is cancelled (QueryId: %v)", queryId);
-
-            try {
-                WaitFor(YqlAgent_->AbortQuery(queryId))
-                    .ThrowOnError();
-            } catch (const std::exception& ex) {
-                YT_LOG_ERROR(ex, "Failed to abort query (QueryId: %v)", queryId);
-            }
+            YT_UNUSED_FUTURE(YqlAgent_->AbortQuery(queryId));
         }));
 
         if (request->async()) {
