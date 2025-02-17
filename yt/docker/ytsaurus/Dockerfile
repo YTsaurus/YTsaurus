@@ -161,7 +161,8 @@ RUN ln -s /usr/bin/ytserver-all /usr/bin/ytserver-master && \
     ln -s /usr/bin/ytserver-all /usr/bin/ytserver-scheduler && \
     ln -s /usr/bin/ytserver-all /usr/bin/ytserver-controller-agent && \
     ln -s /usr/bin/ytserver-all /usr/bin/ytserver-queue-agent && \
-    ln -s /usr/bin/ytserver-all /usr/bin/ytserver-tcp-proxy
+    ln -s /usr/bin/ytserver-all /usr/bin/ytserver-tcp-proxy && \
+    ln -s /usr/bin/ytserver-all /usr/bin/ytserver-tablet-balancer
 
 # YTsaurus credits files.
 COPY ./credits/ytserver-all.CREDITS /usr/bin/ytserver-all.CREDITS
