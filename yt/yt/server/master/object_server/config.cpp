@@ -156,6 +156,9 @@ void TDynamicObjectServiceConfig::Register(TRegistrar registrar)
     registrar.Parameter("enable_read_request_complexity_limits", &TThis::EnableReadRequestComplexityLimits)
         .Default(false);
 
+    registrar.Parameter("local_read_request_throttler", &TThis::LocalReadRequestThrottler)
+        .DefaultNew();
+
     registrar.Parameter("local_write_request_throttler", &TThis::LocalWriteRequestThrottler)
         .DefaultNew();
 }

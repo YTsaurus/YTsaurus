@@ -838,6 +838,9 @@ class TestRequestThrottling(YTEnvSetup):
             "request_rate_smoothing_period": 100,
         },
         "object_service": {
+            "local_read_request_throttler": {
+                "period": 100,
+            },
             "local_write_request_throttler": {
                 "period": 100,
             },
@@ -845,7 +848,7 @@ class TestRequestThrottling(YTEnvSetup):
     }
 
     @staticmethod
-    def _prepare_write_request_throttling_parameters(user):
+    def _prepare_user_write_request_throttling_parameters(user):
         return {
             "set_limit_function": lambda: set(f"//sys/users/{user}/@write_request_rate_limit", 1),
             "make_batch_request_function": lambda i: make_batch_request("create", type="map_node", path=f"//tmp/alice-{i:02d}"),
@@ -857,7 +860,7 @@ class TestRequestThrottling(YTEnvSetup):
         }
 
     @staticmethod
-    def _prepare_read_request_throttling_parameters(user):
+    def _prepare_user_read_request_throttling_parameters(user):
         create("map_node", "//tmp/read_me")
 
         return {
@@ -871,7 +874,7 @@ class TestRequestThrottling(YTEnvSetup):
         }
 
     @staticmethod
-    def _prepare_automaton_request_throttling_parameters(_):
+    def _prepare_automaton_write_request_throttling_parameters(_):
         return {
             "set_limit_function": lambda: set("//sys/@config/object_service/local_write_request_throttler/limit", 1),
             "make_batch_request_function": lambda i: make_batch_request("create", type="map_node", path=f"//tmp/alice-{i:02d}"),
@@ -883,7 +886,21 @@ class TestRequestThrottling(YTEnvSetup):
         }
 
     @staticmethod
-    def _prepare_automaton_and_write_request_throttling_parameters(user):
+    def _prepare_automaton_read_request_throttling_parameters(_):
+        create("map_node", "//tmp/read_me")
+
+        return {
+            "set_limit_function": lambda: set("//sys/@config/object_service/local_read_request_throttler/limit", 1),
+            "make_batch_request_function": lambda _: make_batch_request("get", path="//tmp/read_me/@owner"),
+            "request_count": 10,
+            # Very conservative, this ratio was closer to 100 in local runs.
+            "throttled_to_non_throttled_ratio_threshold": 5,
+            # The throttled execution time should be close to 10 seconds, but let's be generous.
+            "throttled_batch_execution_time_lower_bound": 5.0,
+        }
+
+    @staticmethod
+    def _prepare_automaton_and_user_write_request_throttling_parameters(user):
         def set_limit():
             set("//sys/@config/object_service/local_write_request_throttler/limit", 1)
             set(f"//sys/users/{user}/@write_request_rate_limit", 1)
@@ -898,12 +915,55 @@ class TestRequestThrottling(YTEnvSetup):
             "throttled_batch_execution_time_lower_bound": 5.0,
         }
 
+    @staticmethod
+    def _prepare_automaton_and_user_read_write_requests_throttling_parameters(user):
+        create("map_node", "//tmp/read_me")
+
+        def set_limit():
+            set("//sys/@config/object_service/local_read_request_throttler/limit", 1)
+            set(f"//sys/users/{user}/@read_request_rate_limit", 1)
+            set("//sys/@config/object_service/local_write_request_throttler/limit", 1)
+            set(f"//sys/users/{user}/@write_request_rate_limit", 1)
+
+        return {
+            "set_limit_function": set_limit,
+            "make_batch_request_function": lambda i: make_batch_request("get", path="//tmp/read_me/@owner")
+                if i % 2 == 0
+                else make_batch_request("create", type="map_node", path=f"//tmp/alice-{i:02d}"),
+            "request_count": 20,
+            # Very conservative, this ratio was closer to 100 in local runs.
+            "throttled_to_non_throttled_ratio_threshold": 5,
+            # The throttled execution time should be close to 10 seconds, but let's be generous.
+            "throttled_batch_execution_time_lower_bound": 5.0,
+        }
+
+    @staticmethod
+    def _prepare_automaton_and_user_read_request_throttling_parameters(user):
+        create("map_node", "//tmp/read_me")
+
+        def set_limit():
+            set("//sys/@config/object_service/local_read_request_throttler/limit", 1)
+            set(f"//sys/users/{user}/@read_request_rate_limit", 1)
+
+        return {
+            "set_limit_function": set_limit,
+            "make_batch_request_function": lambda _: make_batch_request("get", path="//tmp/read_me/@owner"),
+            "request_count": 10,
+            # Very conservative, this ratio was closer to 100 in local runs.
+            "throttled_to_non_throttled_ratio_threshold": 5,
+            # The throttled execution time should be close to 10 seconds, but let's be generous.
+            "throttled_batch_execution_time_lower_bound": 5.0,
+        }
+
     @authors("achulkov2")
     @pytest.mark.parametrize("prepare_test_parameters", [
-        _prepare_write_request_throttling_parameters,
-        _prepare_read_request_throttling_parameters,
-        _prepare_automaton_request_throttling_parameters,
-        _prepare_automaton_and_write_request_throttling_parameters,
+        _prepare_user_write_request_throttling_parameters,
+        _prepare_user_read_request_throttling_parameters,
+        _prepare_automaton_read_request_throttling_parameters,
+        _prepare_automaton_write_request_throttling_parameters,
+        _prepare_automaton_and_user_write_request_throttling_parameters,
+        _prepare_automaton_and_user_read_write_requests_throttling_parameters,
+        _prepare_automaton_and_user_read_request_throttling_parameters,
     ])
     def test_request_throttling(self, prepare_test_parameters):
         user = "alice"
