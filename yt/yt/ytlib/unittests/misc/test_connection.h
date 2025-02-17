@@ -63,6 +63,7 @@
 #include <yt/yt/ytlib/bundle_controller/bundle_controller_channel.h>
 
 #include <yt/yt/ytlib/security_client/permission_cache.h>
+#include <yt/yt/ytlib/security_client/user_attribute_cache.h>
 
 #include <yt/yt/ytlib/tablet_client/native_table_mount_cache.h>
 
@@ -179,6 +180,7 @@ public:
     MOCK_METHOD(const NTransactionClient::ITimestampProviderPtr&, GetTimestampProvider, (), (override));
     MOCK_METHOD(const NJobProberClient::TJobShellDescriptorCachePtr&, GetJobShellDescriptorCache, (), (override));
     MOCK_METHOD(const NSecurityClient::TPermissionCachePtr&, GetPermissionCache, (), (override));
+    MOCK_METHOD(const NSecurityClient::TUserAttributeCachePtr&, GetUserAttributeCache, (), (override));
     MOCK_METHOD(const TStickyGroupSizeCachePtr&, GetStickyGroupSizeCache, (), (override));
     MOCK_METHOD(const TSyncReplicaCachePtr&, GetSyncReplicaCache, (), (override));
     MOCK_METHOD(const TTabletSyncReplicaCachePtr&, GetTabletSyncReplicaCache, (), (override));

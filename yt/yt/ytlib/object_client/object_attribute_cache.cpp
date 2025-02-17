@@ -1,5 +1,4 @@
 #include "object_attribute_cache.h"
-#include "private.h"
 
 #include <yt/yt/ytlib/cypress_client/batch_attribute_fetcher.h>
 
@@ -16,59 +15,33 @@ using namespace NLogging;
 
 TObjectAttributeCache::TObjectAttributeCache(
     TObjectAttributeCacheConfigPtr config,
-    std::vector<TString> attributeNames,
+    std::vector<std::string> attributeNames,
     NNative::IClientPtr client,
     IInvokerPtr invoker,
     const NLogging::TLogger& logger,
     NProfiling::TProfiler profiler)
-    : TAsyncExpiringCache(
-        config,
-        ObjectClientLogger().WithTag("Cache: ObjectAttribute"),
+    : TObjectAttributeCacheBase(
+        std::move(config),
+        std::move(client),
+        std::move(invoker),
+        logger,
         std::move(profiler))
     , AttributeNames_(std::move(attributeNames))
-    , Config_(std::move(config))
-    , Logger(logger.WithTag("ObjectAttributeCacheId: %v", TGuid::Create()))
-    , Client_(std::move(client))
-    , Invoker_(std::move(invoker))
 { }
 
-TFuture<std::vector<TErrorOr<IAttributeDictionaryPtr>>> TObjectAttributeCache::GetFromClient(
-    const std::vector<TYPath>& paths,
-    const NNative::IClientPtr& client,
-    const IInvokerPtr& invoker,
-    const std::vector<TString>& attributeNames,
-    const NLogging::TLogger& logger,
-    const TMasterReadOptions& options)
+NYPath::TYPath TObjectAttributeCache::GetPath(const NYPath::TYPath& key) const
 {
-    auto fetcher = New<TBatchAttributeFetcher>(paths, attributeNames, client, invoker, logger, options);
-
-    return fetcher->Fetch().Apply(BIND([fetcher = std::move(fetcher)] {
-        return fetcher->Attributes();
-    }));
+    return key;
 }
 
-TFuture<IAttributeDictionaryPtr> TObjectAttributeCache::DoGet(
-    const TYPath& path,
-    bool isPeriodicUpdate) noexcept
+NYTree::IAttributeDictionaryPtr TObjectAttributeCache::ParseValue(const NYTree::IAttributeDictionaryPtr& attributes) const
 {
-    return DoGetMany({path}, isPeriodicUpdate)
-        .Apply(BIND([path] (const std::vector<TErrorOr<IAttributeDictionaryPtr>>& response) {
-            return response[0].ValueOrThrow();
-        }));
+    return attributes;
 }
 
-TFuture<std::vector<TErrorOr<IAttributeDictionaryPtr>>> TObjectAttributeCache::DoGetMany(
-    const std::vector<TYPath>& paths,
-    bool /*isPeriodicUpdate*/) noexcept
+const std::vector<std::string>& TObjectAttributeCache::GetAttributeNames() const
 {
-    YT_LOG_DEBUG("Updating object attribute cache (PathCount: %v)", paths.size());
-    return GetFromClient(
-        paths,
-        Client_,
-        Invoker_,
-        AttributeNames_,
-        Logger,
-        *Config_->MasterReadOptions);
+    return AttributeNames_;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

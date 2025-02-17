@@ -244,6 +244,11 @@ public:
         YT_UNIMPLEMENTED();
     }
 
+    const NSecurityClient::TUserAttributeCachePtr& GetUserAttributeCache() override
+    {
+        YT_UNIMPLEMENTED();
+    }
+
     const NApi::NNative::TStickyGroupSizeCachePtr& GetStickyGroupSizeCache() override
     {
         YT_UNIMPLEMENTED();

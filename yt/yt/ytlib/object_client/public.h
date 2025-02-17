@@ -2,6 +2,8 @@
 
 #include <yt/yt/client/object_client/public.h>
 
+#include <yt/yt/core/logging/log.h>
+
 #include <library/cpp/yt/memory/ref_counted.h>
 
 namespace NYT::NObjectClient {
@@ -55,6 +57,10 @@ DEFINE_ENUM_WITH_UNDERLYING_TYPE(EObjectLifeStage, ui8,
      ((RemovalAwaitingCellsSync)(5))
      ((RemovalCommitted)        (6))
 );
+
+////////////////////////////////////////////////////////////////////////////////
+
+YT_DEFINE_GLOBAL(const NLogging::TLogger, ObjectClientLogger, "ObjectClient");
 
 ////////////////////////////////////////////////////////////////////////////////
 
