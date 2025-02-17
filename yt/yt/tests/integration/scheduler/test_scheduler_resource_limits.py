@@ -22,7 +22,7 @@ import builtins
 
 ###############################################################################################
 
-MEMORY_SCRIPT = """
+MEMORY_SCRIPT = """#!/usr/bin/env python3
 import time
 
 from random import randint
@@ -71,7 +71,7 @@ class TestSchedulerMemoryLimits(YTEnvSetup):
             track=False,
             in_="//tmp/t_in",
             out="//tmp/t_out",
-            command="python -c 'import time; a=[1]*100000000; time.sleep(10)'",
+            command="python3 -c 'import time; a=[1]*100000000; time.sleep(10)'",
             spec={"max_failed_job_count": 2, "mapper": {"memory_limit": 512 * 1024 * 1024}},
         )
 
@@ -138,7 +138,7 @@ class TestDisabledMemoryLimit(YTEnvSetup):
         map(
             in_="//tmp/t_in",
             out="//tmp/t_out",
-            command="python -c 'import time; a=[1]*1000000; time.sleep(10)'",
+            command="python3 -c 'import time; a=[1]*1000000; time.sleep(10)'",
             spec={"mapper": {"memory_limit": 1}},
         )
 

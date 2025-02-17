@@ -403,7 +403,7 @@ class TestStderrTable(YTEnvSetup):
             map(
                 in_="//tmp/t_input",
                 out="//tmp/t_output",
-                command="""python -c 'import sys; s = "x" * (20 * 1024 * 1024) ; sys.stderr.write(s)'""",
+                command="""python3 -c 'import sys; s = "x" * (20 * 1024 * 1024) ; sys.stderr.write(s)'""",
                 spec={
                     "stderr_table_path": "//tmp/t_stderr",
                     "stderr_table_writer_config": {
@@ -423,7 +423,7 @@ class TestStderrTable(YTEnvSetup):
         map(
             in_="//tmp/t_input",
             out="//tmp/t_output",
-            command="""python -c 'import sys; s = "x" * (30 * 1024 * 1024) ; sys.stderr.write(s)'""",
+            command="""python3 -c 'import sys; s = "x" * (30 * 1024 * 1024) ; sys.stderr.write(s)'""",
             spec={
                 "stderr_table_path": "//tmp/t_stderr",
                 "stderr_table_writer_config": {
@@ -443,7 +443,7 @@ class TestStderrTable(YTEnvSetup):
         map(
             in_="//tmp/t_input",
             out="//tmp/t_output",
-            command="""python -c 'import sys; s = "x " * (30 * 1024 * 1024) ; sys.stderr.write(s)'""",
+            command="""python3 -c 'import sys; s = "x " * (30 * 1024 * 1024) ; sys.stderr.write(s)'""",
             spec=get_stderr_spec("//tmp/t_stderr"),
         )
         stderr_rows = read_table("//tmp/t_stderr", verbose=False)

@@ -434,7 +434,7 @@ class TestSandboxTmpfs(YTEnvSetup):
         write_table("//tmp/t_input", {"foo": "bar"})
 
         op = map(
-            command="python -c 'import time; x = \"0\" * (200 * 1000 * 1000); time.sleep(2)'",
+            command="python3 -c 'import time; x = \"0\" * (200 * 1000 * 1000); time.sleep(2)'",
             in_="//tmp/t_input",
             out="//tmp/t_output",
             spec={
@@ -451,8 +451,7 @@ class TestSandboxTmpfs(YTEnvSetup):
         create("table", "//tmp/t_output")
         write_table("//tmp/t_input", {"foo": "bar"})
 
-        mapper = b"""
-#!/usr/bin/python
+        mapper = b"""#!/usr/bin/env python3
 
 import mmap, time
 
@@ -928,7 +927,7 @@ class TestSandboxTmpfsOverflow(YTEnvSetup):
                 "dd if=/dev/zero of=tmpfs_1/file  bs=1M  count=512; ls tmpfs_1/ >&2; "
                 "dd if=/dev/zero of=tmpfs_2/file  bs=1M  count=512; ls tmpfs_2/ >&2; "
                 "BREAKPOINT; "
-                "python -c 'import time; x = \"A\" * (200 * 1024 * 1024); time.sleep(100);'"
+                "python3 -c 'import time; x = \"A\" * (200 * 1024 * 1024); time.sleep(100);'"
             ),
             in_="//tmp/t_input",
             out="//tmp/t_output",
@@ -1524,7 +1523,7 @@ class TestJobStderr(YTEnvSetup):
         op = map(
             in_="//tmp/t1",
             out="//tmp/t2",
-            command='cat > /dev/null; python -c \'print("head" + "0" * 10000000); print("1" * 10000000 + "tail")\' >&2;',
+            command='cat > /dev/null; python3 -c \'print("head" + "0" * 10000000); print("1" * 10000000 + "tail")\' >&2;',
             spec={"max_failed_job_count": 1, "mapper": {"max_stderr_size": 1000000}},
         )
 
@@ -4006,7 +4005,7 @@ class TestCriJobStatistics(YTEnvSetup):
         write_table("//tmp/t_input", {"foo": "bar"})
 
         op = map(
-            command="python -c 'import time; x = \"X\" * (200 * 1000 * 1000); time.sleep(5)'",
+            command="python3 -c 'import time; x = \"X\" * (200 * 1000 * 1000); time.sleep(5)'",
             in_="//tmp/t_input",
             out="//tmp/t_output",
             spec={

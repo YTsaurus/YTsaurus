@@ -1403,8 +1403,7 @@ print row + table_index
 
         update_inplace(spec, spec_patch)
 
-        mapper = b"""
-#!/usr/bin/python3
+        mapper = b"""#!/usr/bin/env python3
 
 import json
 
@@ -1422,7 +1421,7 @@ print(json.dumps(input))
 
         # NB(arkady-e1ppa): we force no bufferisation because otherwise we may read something like
         # "row1End\nrow2Start" and discard row2start completely.
-        map_cmd = """python -u mapper.py ; BREAKPOINT ; cat"""
+        map_cmd = """python3 -u mapper.py ; BREAKPOINT ; cat"""
 
         op = map(
             ordered=ordered,
@@ -2914,10 +2913,10 @@ print '{hello=world}'
 
         script = b"\n".join(
             [
-                b"#!/usr/bin/python",
+                b"#!/usr/bin/env python3",
                 b"import sys",
                 b"import base64",
-                b"print '{out=\"' + base64.standard_b64encode(sys.stdin.read()) + '\"}'",
+                b"print('{out=\"' + base64.standard_b64encode(sys.stdin.read()) + '\"}')",
             ]
         )
 
