@@ -143,6 +143,7 @@ public:
         ENodeState state);
 
     const std::string& GetDefaultAddress() const;
+    const NNodeTrackerClient::TAddressMap& GetAddresses() const;
 
     //! Checks if the node can handle jobs demanding a certain #tag.
     bool CanSchedule(const TSchedulingTagFilter& filter) const;

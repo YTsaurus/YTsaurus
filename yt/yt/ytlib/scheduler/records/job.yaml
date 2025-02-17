@@ -62,6 +62,11 @@ types:
         column_name: address
         column_type: String
 
+      - cpp_name: Addresses
+        cpp_type: NYson::TYsonString
+        column_name: addresses
+        column_type: Any
+
       - cpp_name: Error
         cpp_type: NYson::TYsonString
         column_name: error

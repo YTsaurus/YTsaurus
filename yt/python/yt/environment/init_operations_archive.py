@@ -688,6 +688,82 @@ TRANSFORMS[55] = [
             })),
 ]
 
+def get_addresses_mapper(table):
+    column_names = table.user_columns
+
+    def addresses_mapper(row):
+        result = dict([(key, row.get(key)) for key in column_names])
+
+        address = row.get("address")
+        if address is None:
+            result["addresses"] = yson.YsonMap({})
+        else:
+            result["addresses"] = yson.YsonMap({"default": address})
+
+        yield result
+
+    return addresses_mapper
+
+JOBS_TABLE_V56 = TableInfo(
+    [
+        ("job_id_partition_hash", "uint64", "farm_hash(job_id_hi, job_id_lo) % {}".format(JOB_TABLE_PARTITION_COUNT)),
+        ("operation_id_hash", "uint64", "farm_hash(operation_id_hi, operation_id_lo)"),
+        ("operation_id_hi", "uint64"),
+        ("operation_id_lo", "uint64"),
+        ("job_id_hi", "uint64"),
+        ("job_id_lo", "uint64")
+    ], [
+        ("type", "string"),
+        ("state", "string"),
+        ("start_time", "int64"),
+        ("finish_time", "int64"),
+        ("address", "string"),
+        ("error", "any"),
+        ("interruption_info", "any"),
+        ("statistics", "any"),
+        ("stderr_size", "uint64"),
+        ("spec", "string"),
+        ("spec_version", "int64"),
+        ("has_spec", "boolean"),
+        ("has_fail_context", "boolean"),
+        ("fail_context_size", "uint64"),
+        ("events", "any"),
+        ("transient_state", "string"),
+        ("update_time", "int64"),
+        ("core_infos", "any"),
+        ("job_competition_id", "string"),
+        ("has_competitors", "boolean"),
+        ("exec_attributes", "any"),
+        ("task_name", "string"),
+        ("statistics_lz4", "string"),
+        ("brief_statistics", "any"),
+        ("pool_tree", "string"),
+        ("monitoring_descriptor", "string"),
+        ("probing_job_competition_id", "string"),
+        ("has_probing_competitors", "boolean"),
+        ("job_cookie", "int64"),
+        ("controller_state", "string"),
+        ("archive_features", "any"),
+        ("$ttl", "uint64"),
+        ("operation_incarnation", "string"),
+        ("addresses", "any"),
+    ],
+    default_lock="operations_cleaner",
+    attributes={
+        "atomicity": "none",
+        "tablet_cell_bundle": SYS_BUNDLE_NAME,
+        "account": OPERATIONS_ARCHIVE_ACCOUNT_NAME,
+    },
+)
+
+TRANSFORMS[56] = [
+    Conversion(
+        "jobs",
+        table_info=JOBS_TABLE_V56,
+        mapper=get_addresses_mapper(JOBS_TABLE_V56),
+    )
+]
+
 # NB(renadeen): don't forget to update min_required_archive_version at yt/yt/server/lib/scheduler/config.cpp
 
 
