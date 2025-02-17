@@ -2,6 +2,7 @@ package bus
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -10,10 +11,15 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"google.golang.org/protobuf/proto"
+
 	"go.ytsaurus.tech/library/go/core/log"
 	"go.ytsaurus.tech/library/go/core/log/nop"
+	"go.ytsaurus.tech/library/go/ptr"
 	"go.ytsaurus.tech/yt/go/crc64"
 	"go.ytsaurus.tech/yt/go/guid"
+	"go.ytsaurus.tech/yt/go/proto/core/bus"
+	"go.ytsaurus.tech/yt/go/proto/core/misc"
 )
 
 type AttributeKey string
@@ -23,26 +29,42 @@ const (
 	AttributeKeyFeatureName AttributeKey = "feature_name"
 )
 
+type EncryptionMode int
+
+const (
+	// TODO(khlebnikov) Add enum into proto file.
+	EncryptionModeDisabled EncryptionMode = 0
+	EncryptionModeOptional EncryptionMode = 1
+	EncryptionModeRequired EncryptionMode = 2
+)
+
 type Options struct {
 	Address string
 	Logger  log.Logger
+
+	EncryptionMode EncryptionMode
+	TLSConfig      *tls.Config
 }
 
-type packetType int16
-type packetFlags int16
+// NOTE: See yt/yt/core/bus/tcp/packet.cpp
+
+type packetType uint16
+type packetFlags uint16
 
 const (
 	packetMessage = packetType(0)
 	packetAck     = packetType(1)
+	packetSSLAck  = packetType(2)
 
 	packetFlagsNone                   = packetFlags(0x0000)
 	packetFlagsRequestAcknowledgement = packetFlags(0x0001)
 
-	packetSignature = uint32(0x78616d4f)
-	nullPartSize    = uint32(0xffffffff)
-	maxPartSize     = 512 * 1024 * 1024
-	maxPartCount    = 64
-	fixHeaderSize   = 36
+	packetSignature    = uint32(0x78616d4f)
+	handshakeSignature = uint32(0x68737562)
+	nullPartSize       = uint32(0xffffffff)
+	maxPartSize        = 512 * 1024 * 1024
+	maxPartCount       = 64
+	fixHeaderSize      = 36
 )
 
 type fixedHeader struct {
@@ -52,6 +74,11 @@ type fixedHeader struct {
 	packetID  guid.GUID
 	partCount uint32
 	checksum  uint64
+}
+
+func (p *fixedHeader) isVariablePacket() bool {
+	// NOTE: Message packets always have variable header, other only when have payload.
+	return p.typ == packetMessage || p.partCount > 0
 }
 
 func (p *fixedHeader) data(computeCRC bool) []byte {
@@ -144,6 +171,23 @@ func newMessagePacket(id guid.GUID, data [][]byte, flags packetFlags, computeCRC
 	}
 }
 
+func newSSLAckPacket(id guid.GUID) busMsg {
+	hdr := fixedHeader{
+		typ:       packetSSLAck,
+		flags:     packetFlagsNone,
+		partCount: 0,
+		packetID:  id,
+		checksum:  0,
+		signature: packetSignature,
+	}
+
+	return busMsg{
+		fixHeader: hdr,
+		varHeader: variableHeader{},
+		parts:     nil,
+	}
+}
+
 func (p *busMsg) writeTo(w io.Writer) (int, error) {
 	n := 0
 
@@ -153,18 +197,20 @@ func (p *busMsg) writeTo(w io.Writer) (int, error) {
 	}
 	n += l
 
-	l, err = w.Write(p.varHeader.data(true))
-	if err != nil {
-		return n + l, err
-	}
-	n += l
-
-	for _, p := range p.parts {
-		l, err := w.Write(p)
+	if p.fixHeader.isVariablePacket() {
+		l, err = w.Write(p.varHeader.data(true))
 		if err != nil {
 			return n + l, err
 		}
 		n += l
+
+		for _, p := range p.parts {
+			l, err := w.Write(p)
+			if err != nil {
+				return n + l, err
+			}
+			n += l
+		}
 	}
 
 	return n, nil
@@ -243,7 +289,7 @@ func (c *Bus) Send(packetID guid.GUID, packetData [][]byte, opts *busSendOptions
 }
 
 func (c *Bus) Receive() (busMsg, error) {
-	packet, err := c.receive(c.conn)
+	packet, err := c.receive()
 	if err != nil {
 		if !c.closed.Load() || !errors.Is(err, net.ErrClosed) {
 			c.logger.Error("Receive error", log.Error(err))
@@ -261,9 +307,9 @@ func (c *Bus) Receive() (busMsg, error) {
 	return packet, nil
 }
 
-func (c *Bus) receive(message io.Reader) (busMsg, error) {
+func (c *Bus) receive() (busMsg, error) {
 	rawFixHeader := make([]byte, fixHeaderSize)
-	if _, err := io.ReadFull(message, rawFixHeader); err != nil {
+	if _, err := io.ReadFull(c.conn, rawFixHeader); err != nil {
 		return busMsg{}, fmt.Errorf("bus: error reading fix header: %w", err)
 	}
 
@@ -292,7 +338,7 @@ func (c *Bus) receive(message io.Reader) (busMsg, error) {
 		return busMsg{}, fmt.Errorf("bus: too many parts: %d > %d", fixHeader.partCount, maxPartCount)
 	}
 
-	if fixHeader.partCount == 0 {
+	if !fixHeader.isVariablePacket() {
 		return busMsg{
 			parts:     nil,
 			fixHeader: fixHeader,
@@ -307,7 +353,7 @@ func (c *Bus) receive(message io.Reader) (busMsg, error) {
 	}
 
 	rawVarHeader := make([]byte, int((4+8)*fixHeader.partCount+8))
-	if _, err := io.ReadFull(message, rawVarHeader); err != nil {
+	if _, err := io.ReadFull(c.conn, rawVarHeader); err != nil {
 		return busMsg{}, fmt.Errorf("bus: error reading var header: %w", err)
 	}
 
@@ -336,7 +382,7 @@ func (c *Bus) receive(message io.Reader) (busMsg, error) {
 			}
 
 			part = make([]byte, partSize)
-			if _, err := io.ReadFull(message, part); err != nil {
+			if _, err := io.ReadFull(c.conn, part); err != nil {
 				return busMsg{}, fmt.Errorf("bus: error reading part %d: %w", i, err)
 			}
 			parts[i] = part
@@ -354,6 +400,156 @@ func (c *Bus) receive(message io.Reader) (busMsg, error) {
 	}, nil
 }
 
+func (c *Bus) sendHandshake() error {
+	handshake := bus.THandshake{
+		ConnectionId:   misc.NewProtoFromGUID(c.id),
+		EncryptionMode: ptr.Int32(int32(c.options.EncryptionMode)),
+	}
+
+	handshakeData, err := proto.Marshal(&handshake)
+	if err != nil {
+		return fmt.Errorf("bus: error marshal handshake: %w", err)
+	}
+
+	data := make([]byte, proto.Size(&handshake)+4)
+	binary.LittleEndian.PutUint32(data[0:4], handshakeSignature)
+	copy(data[4:], handshakeData)
+
+	handshakePacketID := guid.FromParts(1, 0, 0, 0)
+	packet := newMessagePacket(
+		handshakePacketID,
+		[][]byte{data},
+		packetFlagsNone,
+		/*computeCRC*/ true)
+	l, err := packet.writeTo(c.conn)
+	if err != nil {
+		return fmt.Errorf("bus: error sending handshake: %w", err)
+	}
+
+	c.logger.Debug("Handshake sent",
+		log.Any("bytes", l))
+
+	return nil
+}
+
+func (c *Bus) receiveHandshake() (bool, error) {
+	msg, err := c.receive()
+	if err != nil {
+		return false, fmt.Errorf("bus: error receiving handshake: %w", err)
+	}
+
+	if msg.fixHeader.typ != packetMessage {
+		return false, fmt.Errorf("bus: handshake type mismatch")
+	}
+
+	if msg.fixHeader.partCount != 1 {
+		return false, fmt.Errorf("bus: handshake part count mismatch")
+	}
+
+	if msg.fixHeader.packetID != guid.FromParts(1, 0, 0, 0) {
+		return false, fmt.Errorf("bus: handshake packet id mismatch")
+	}
+
+	data := msg.parts[0]
+	if len(data) < 4 {
+		return false, fmt.Errorf("bus: handshake data too small")
+	}
+
+	signature := binary.LittleEndian.Uint32(data[0:4])
+	if signature != handshakeSignature {
+		return false, fmt.Errorf("bus: handshake data signature mismatch")
+	}
+
+	var handshake bus.THandshake
+	if err := proto.Unmarshal(data[4:], &handshake); err != nil {
+		return false, fmt.Errorf("bus: handshake data unmarshal error: %w", err)
+	}
+
+	em := EncryptionMode(handshake.GetEncryptionMode())
+	c.logger.Debug("Handshake received", log.Int("encryption_mode", int(em)))
+
+	if em == EncryptionModeRequired || c.options.EncryptionMode == EncryptionModeRequired {
+		if em == EncryptionModeDisabled {
+			return false, fmt.Errorf("bus: peer rejects encryption")
+		}
+		if c.options.EncryptionMode == EncryptionModeDisabled {
+			return false, fmt.Errorf("bus: peer requires encryption")
+		}
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (c *Bus) sendSSLAck() error {
+	packet := newSSLAckPacket(guid.FromParts(2, 0, 0, 0))
+	l, err := packet.writeTo(c.conn)
+	if err != nil {
+		return fmt.Errorf("bus: error sending SSL ACK: %w", err)
+	}
+
+	c.logger.Debug("SSL ACK sent",
+		log.Any("bytes", l))
+
+	return nil
+}
+
+func (c *Bus) receiveSSLAck() error {
+	msg, err := c.receive()
+	if err != nil {
+		return fmt.Errorf("bus: error receiving SSL ACK: %w", err)
+	}
+
+	if msg.fixHeader.typ != packetSSLAck {
+		return fmt.Errorf("bus: SSL ACK type mismatch")
+	}
+
+	if msg.fixHeader.partCount != 0 {
+		return fmt.Errorf("bus: SSL ACK part count mismatch")
+	}
+
+	if msg.fixHeader.packetID != guid.FromParts(2, 0, 0, 0) {
+		return fmt.Errorf("bus: SSL ACK packet id mismatch")
+	}
+
+	c.logger.Debug("SSL ACK received")
+
+	return nil
+}
+
+func (c *Bus) establishEncryption(isServer bool) error {
+	if err := c.sendHandshake(); err != nil {
+		return err
+	}
+
+	if encrypt, err := c.receiveHandshake(); err != nil {
+		return err
+	} else if !encrypt {
+		return nil
+	}
+
+	if err := c.sendSSLAck(); err != nil {
+		return err
+	}
+
+	if err := c.receiveSSLAck(); err != nil {
+		return err
+	}
+
+	var conn *tls.Conn
+	if isServer {
+		conn = tls.Server(c.conn, c.options.TLSConfig)
+	} else {
+		conn = tls.Client(c.conn, c.options.TLSConfig)
+	}
+	if err := conn.Handshake(); err != nil {
+		return fmt.Errorf("bus: error performing SSL handshake: %w", err)
+	}
+
+	c.conn = conn
+	return nil
+}
+
 func Dial(ctx context.Context, options Options) (*Bus, error) {
 	var dialer net.Dialer
 	conn, err := dialer.DialContext(ctx, "tcp", options.Address)
@@ -361,5 +557,11 @@ func Dial(ctx context.Context, options Options) (*Bus, error) {
 		return nil, err
 	}
 
-	return NewBus(conn, options), nil
+	bus := NewBus(conn, options)
+	if err := bus.establishEncryption(false); err != nil {
+		bus.Close()
+		return nil, err
+	}
+
+	return bus, nil
 }

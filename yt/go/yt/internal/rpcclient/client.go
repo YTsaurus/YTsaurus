@@ -60,6 +60,10 @@ func NewClient(conf *yt.Config) (*client, error) {
 		stop:       internal.NewStopGroup(),
 	}
 
+	tlsConfig := tls.Config{
+		RootCAs: certPool,
+	}
+
 	c.httpClient = &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConns:        0,
@@ -67,9 +71,7 @@ func NewClient(conf *yt.Config) (*client, error) {
 			IdleConnTimeout:     30 * time.Second,
 
 			TLSHandshakeTimeout: 10 * time.Second,
-			TLSClientConfig: &tls.Config{
-				RootCAs: certPool,
-			},
+			TLSClientConfig:     &tlsConfig,
 		},
 		Timeout: 60 * time.Second,
 	}
@@ -86,6 +88,17 @@ func NewClient(conf *yt.Config) (*client, error) {
 		clientOpts := []bus.ClientOption{
 			bus.WithLogger(c.log.Logger()),
 			bus.WithDefaultProtocolVersionMajor(ProtocolVersionMajor),
+		}
+		if conf.UseTLS {
+			busTLSConfig := tlsConfig.Clone()
+			if conf.PeerAlternativeHostName != "" {
+				// TODO(khlebnikov) use custom VerifyPeerCertificate.
+				busTLSConfig.ServerName = conf.PeerAlternativeHostName
+			} else {
+				busTLSConfig.ServerName = addr
+			}
+			clientOpts = append(clientOpts, bus.WithEncryptionMode(bus.EncryptionModeRequired))
+			clientOpts = append(clientOpts, bus.WithTLSConfig(busTLSConfig))
 		}
 		return bus.NewClient(ctx, addr, clientOpts...)
 	}, c.log)

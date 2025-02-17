@@ -447,6 +447,27 @@ func TestTestService(t *testing.T) {
 	})
 }
 
+func TestTestServiceWithTLS(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
+	addr, tlsConfig, stop := StartTestServiceWithTLS(t)
+	defer stop()
+
+	c := NewTestServiceClient(addr, WithEncryptionMode(EncryptionModeRequired), WithTLSConfig(tlsConfig))
+	defer func() {
+		c.Close()
+		<-c.conn.Done()
+	}()
+
+	t.Run("Send", func(t *testing.T) {
+		req := &testservice.TReqSomeCall{A: ptr.Int32(42)}
+
+		rsp, err := c.SomeCall(context.Background(), req)
+		require.NoError(t, err)
+		require.Equal(t, int32(142), *rsp.B)
+	})
+}
+
 func TestClient_stress(t *testing.T) {
 	defer goleak.VerifyNone(t)
 

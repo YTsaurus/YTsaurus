@@ -2,6 +2,8 @@ package bus
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"net"
 	"os"
 	"os/exec"
@@ -12,11 +14,27 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/require"
 
+	"go.ytsaurus.tech/yt/go/yson"
+
 	"go.ytsaurus.tech/yt/go/bus/tcptest"
 	testservice "go.ytsaurus.tech/yt/go/proto/core/rpc/unittests"
 )
 
-func StartTestService(t *testing.T) (addr string, stop func()) {
+type PemBlobConfig struct {
+	FileName string `yson:"file_name,omitempty"`
+	Value    string `yson:"value,omitempty"`
+}
+
+type BusServerConfig struct {
+	Port int `yson:"port"`
+
+	EncryptionMode   *EncryptionMode `yson:"encryption_mode,omitempty"`
+	CA               *PemBlobConfig  `yson:"ca,omitempty"`
+	CertificateChain *PemBlobConfig  `yson:"cert_chain,omitempty"`
+	PrivateKey       *PemBlobConfig  `yson:"private_key,omitempty"`
+}
+
+func StartTestServiceWithConfig(t *testing.T, config BusServerConfig) (addr string, stop func()) {
 	t.Helper()
 
 	binary := GetTestServiceBinary(t)
@@ -25,7 +43,13 @@ func StartTestService(t *testing.T) (addr string, stop func()) {
 	require.NoError(t, err, "unable to get free port")
 	addr = net.JoinHostPort("localhost", strconv.Itoa(port))
 
-	cmd := exec.Command(binary, strconv.Itoa(port))
+	config.Port = port
+
+	configText, err := yson.Marshal(&config)
+	require.NoError(t, err, "cannot marshal config")
+
+	cmd := exec.Command(binary, string(configText))
+	// cmd.Env = append(os.Environ(), "YT_LOG_LEVEL=debug")
 	cmd.Stdout = nil
 	cmd.Stderr = os.Stderr
 
@@ -49,6 +73,34 @@ func StartTestService(t *testing.T) (addr string, stop func()) {
 	t.Logf("started service on port %d", port)
 
 	return
+}
+
+func StartTestService(t *testing.T) (addr string, stop func()) {
+	return StartTestServiceWithConfig(t, BusServerConfig{})
+}
+
+func StartTestServiceWithTLS(t *testing.T) (string, *tls.Config, func()) {
+	// FIXME(khlebnikov): CPP implementation doesn't support ECDSA yet.
+	certPEM, keyPEM, err := generateSelfSignedRSA()
+	require.NoError(t, err)
+
+	encryptionMode := EncryptionModeRequired
+	config := BusServerConfig{
+		EncryptionMode:   &encryptionMode,
+		CA:               &PemBlobConfig{Value: string(certPEM)},
+		CertificateChain: &PemBlobConfig{Value: string(certPEM)},
+		PrivateKey:       &PemBlobConfig{Value: string(keyPEM)},
+	}
+
+	addr, stop := StartTestServiceWithConfig(t, config)
+
+	tlsConfig := &tls.Config{
+		ServerName: "localhost",
+		RootCAs:    x509.NewCertPool(),
+	}
+	require.True(t, tlsConfig.RootCAs.AppendCertsFromPEM(certPEM))
+
+	return addr, tlsConfig, stop
 }
 
 type TestServiceClient interface {
