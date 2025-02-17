@@ -329,7 +329,7 @@ IRowStreamDecoderPtr CreateRowStreamDecoder(
 {
     switch (rowsetFormat) {
         case NApi::NRpcProxy::NProto::RF_YT_WIRE:
-            return CreateWireRowStreamDecoder(std::move(nameTable));
+            return CreateWireRowStreamDecoder(std::move(nameTable), CreateUnlimitedWireProtocolOptions());
 
         case NApi::NRpcProxy::NProto::RF_ARROW:
             return CreateArrowRowStreamDecoder(std::move(schema), std::move(nameTable));
