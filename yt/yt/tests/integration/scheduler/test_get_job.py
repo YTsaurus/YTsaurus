@@ -535,6 +535,28 @@ class TestGetJob(_TestGetJobCommon):
         time.sleep(5)
 
         get_job(op.id, job_id)
+    
+    @authors("aleksandr.gaev")
+    def test_job_addresses(self):
+        op = run_test_vanilla(
+            with_breakpoint("BREAKPOINT"),
+            job_count=1,
+        )
+        (job_id,) = wait_breakpoint()
+
+        def check_addresses(job_info):
+            return "address" in job_info and "addresses" in job_info
+
+        wait(lambda: check_addresses(get_job(op.id, job_id)))
+
+        release_breakpoint()
+
+        op.track()
+
+        job_info = get_job(op.id, job_id)
+        assert check_addresses(job_info)
+        assert len(job_info.get("address")) > 0
+        assert len(job_info.get("addresses")) > 0
 
 
 @pytest.mark.enabled_multidaemon

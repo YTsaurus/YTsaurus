@@ -106,7 +106,9 @@ public:
     DEFINE_BYREF_RO_PROPERTY(std::optional<TString>, TreeId);
     DEFINE_BYREF_RO_PROPERTY(std::optional<TString>, MonitoringDescriptor);
     DEFINE_BYREF_RO_PROPERTY(std::optional<ui64>, JobCookie);
+    // TODO(aleksandr.gaev): Remove.
     DEFINE_BYREF_RO_PROPERTY(std::optional<std::string>, Address);
+    DEFINE_BYREF_RO_PROPERTY(std::optional<NNodeTrackerClient::TAddressMap>, Addresses);
     DEFINE_BYREF_RO_PROPERTY(std::optional<TString>, ControllerState);
     DEFINE_BYREF_RO_PROPERTY(std::optional<TString>, ArchiveFeatures);
     DEFINE_BYREF_RO_PROPERTY(std::optional<TDuration>, Ttl);
