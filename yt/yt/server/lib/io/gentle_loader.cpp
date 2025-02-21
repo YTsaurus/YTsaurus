@@ -25,6 +25,16 @@ using namespace NConcurrency;
 static constexpr int PageSize = 4_KB;
 static constexpr int IOScale = 100;
 
+// TODO(aleksandr.gaev): better workload category?
+static const TWorkloadDescriptor GentleLoaderWorkloadDescriptor(
+    EWorkloadCategory::UserBatch,
+    0,
+    {},
+    {},
+    {},
+    "TGentleLoader",
+    {});
+
 ////////////////////////////////////////////////////////////////////////////////
 
 class TRandomReader
@@ -58,7 +68,7 @@ public:
                 mode |= DirectAligned;
             }
 
-            auto future = IOEngine_->Open({file->Path, mode})
+            auto future = IOEngine_->Open({file->Path, mode}, GentleLoaderWorkloadDescriptor, {})
                 .Apply(BIND([file] (const TIOEngineHandlePtr& handle) {
                     return TReadFileInfo{
                         .Handle = handle,
@@ -133,11 +143,15 @@ private:
         struct TChunkFileReaderBufferTag
         { };
 
+        auto descriptor = GentleLoaderWorkloadDescriptor;
+        descriptor.Category = category;
+
         NProfiling::TWallTimer requestTimer;
         return IOEngine_->Read(
             {{fileInfo.Handle, offset, readSize}},
-            category,
-            GetRefCountedTypeCookie<TChunkFileReaderBufferTag>())
+            descriptor,
+            GetRefCountedTypeCookie<TChunkFileReaderBufferTag>(),
+            {})
             .AsVoid()
             .Apply(BIND([requestTimer] {
                 return requestTimer.GetElapsedTime();
@@ -296,7 +310,7 @@ private:
             mode |= DirectAligned;
         }
 
-        info.Handle = WaitFor(IOEngine_->Open({info.FilePath, mode}))
+        info.Handle = WaitFor(IOEngine_->Open({info.FilePath, mode}, GentleLoaderWorkloadDescriptor, {}))
             .ValueOrThrow();
 
         if (Config_->PreallocateWriteFiles) {
@@ -304,7 +318,7 @@ private:
                 info.WriterIndex,
                 Config_->MaxWriteFileSize);
 
-            WaitFor(IOEngine_->Allocate({.Handle = info.Handle, .Size = Config_->MaxWriteFileSize}))
+            WaitFor(IOEngine_->Allocate({.Handle = info.Handle, .Size = Config_->MaxWriteFileSize}, GentleLoaderWorkloadDescriptor, {}))
                 .ThrowOnError();
         }
     }
@@ -318,16 +332,20 @@ private:
         }
 
         auto handle = fileInfo.Handle;
+        auto descriptor = GentleLoaderWorkloadDescriptor;
+        descriptor.Category = category;
+
         NProfiling::TWallTimer requestTimer;
         auto future = IOEngine_->Write({
                 .Handle = handle,
                 .Offset = fileInfo.Offset,
                 .Buffers = {MakeRandomBuffer(packetSize)},
             },
-            category)
+            descriptor,
+            {})
             .Apply(BIND([&] () {
                 if (Config_->FlushAfterWrite) {
-                    return IOEngine_->FlushFile({handle, EFlushFileMode::Data});
+                    return IOEngine_->FlushFile({handle, EFlushFileMode::Data}, descriptor, {});
                 }
                 return VoidFuture;
             }));

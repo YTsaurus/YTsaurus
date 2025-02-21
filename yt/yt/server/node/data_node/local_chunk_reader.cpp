@@ -287,7 +287,7 @@ public:
         const auto& ioEngine = chunk->GetLocation()->GetIOEngine();
         return ioEngine->Read(
             std::move(readRequests),
-            options.WorkloadDescriptor.Category,
+            options.WorkloadDescriptor,
             GetRefCountedTypeCookie<TChunkFragmentBufferTag>(),
             options.ReadSessionId)
             .ApplyUnique(BIND([

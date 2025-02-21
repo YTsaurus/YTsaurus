@@ -149,46 +149,46 @@ TDuration TRequestStatsGuard::GetElapsedTime() const
 
 ////////////////////////////////////////////////////////////////////////////////
 
-TFuture<TIOEngineHandlePtr> TIOEngineBase::Open(TOpenRequest request, EWorkloadCategory category)
+TFuture<TIOEngineHandlePtr> TIOEngineBase::Open(TOpenRequest request, const TWorkloadDescriptor& descriptor, TSessionId /*sessionId*/)
 {
     return BIND(&TIOEngineBase::DoOpen, MakeStrong(this), std::move(request))
-        .AsyncVia(NConcurrency::CreateFixedPriorityInvoker(AuxInvoker_, GetBasicPriority(category)))
+        .AsyncVia(NConcurrency::CreateFixedPriorityInvoker(AuxInvoker_, GetBasicPriority(descriptor.Category)))
         .Run();
 }
 
-TFuture<void> TIOEngineBase::Close(TCloseRequest request, EWorkloadCategory category)
+TFuture<void> TIOEngineBase::Close(TCloseRequest request, const TWorkloadDescriptor& descriptor, TSessionId /*sessionId*/)
 {
     auto invoker = (request.Flush || request.Size) ? FsyncInvoker_ : AuxInvoker_;
     return BIND(&TIOEngineBase::DoClose, MakeStrong(this), std::move(request))
-        .AsyncVia(NConcurrency::CreateFixedPriorityInvoker(invoker, GetBasicPriority(category)))
+        .AsyncVia(NConcurrency::CreateFixedPriorityInvoker(invoker, GetBasicPriority(descriptor.Category)))
         .Run();
 }
 
-TFuture<void> TIOEngineBase::FlushDirectory(TFlushDirectoryRequest request, EWorkloadCategory category)
+TFuture<void> TIOEngineBase::FlushDirectory(TFlushDirectoryRequest request, const TWorkloadDescriptor& descriptor, TSessionId /*sessionId*/)
 {
     return BIND(&TIOEngineBase::DoFlushDirectory, MakeStrong(this), std::move(request))
-        .AsyncVia(CreateFixedPriorityInvoker(FsyncInvoker_, GetBasicPriority(category)))
+        .AsyncVia(CreateFixedPriorityInvoker(FsyncInvoker_, GetBasicPriority(descriptor.Category)))
         .Run();
 }
 
-TFuture<void> TIOEngineBase::Allocate(TAllocateRequest request, EWorkloadCategory category)
+TFuture<void> TIOEngineBase::Allocate(TAllocateRequest request, const TWorkloadDescriptor& descriptor, TSessionId /*sessionId*/)
 {
     return BIND(&TIOEngineBase::DoAllocate, MakeStrong(this), std::move(request))
-        .AsyncVia(CreateFixedPriorityInvoker(AuxInvoker_, GetBasicPriority(category)))
+        .AsyncVia(CreateFixedPriorityInvoker(AuxInvoker_, GetBasicPriority(descriptor.Category)))
         .Run();
 }
 
- TFuture<void> TIOEngineBase::Lock(TLockRequest request, EWorkloadCategory category)
+ TFuture<void> TIOEngineBase::Lock(TLockRequest request, const TWorkloadDescriptor& descriptor, TSessionId /*sessionId*/)
 {
     return BIND(&TIOEngineBase::DoLock, MakeStrong(this), std::move(request))
-        .AsyncVia(CreateFixedPriorityInvoker(AuxInvoker_, GetBasicPriority(category)))
+        .AsyncVia(CreateFixedPriorityInvoker(AuxInvoker_, GetBasicPriority(descriptor.Category)))
         .Run();
 }
 
-TFuture<void> TIOEngineBase::Resize(TResizeRequest request, EWorkloadCategory category)
+TFuture<void> TIOEngineBase::Resize(TResizeRequest request, const TWorkloadDescriptor& descriptor, TSessionId /*sessionId*/)
 {
     return BIND(&TIOEngineBase::DoResize, MakeStrong(this), std::move(request))
-        .AsyncVia(CreateFixedPriorityInvoker(AuxInvoker_, GetBasicPriority(category)))
+        .AsyncVia(CreateFixedPriorityInvoker(AuxInvoker_, GetBasicPriority(descriptor.Category)))
         .Run();
 }
 

@@ -119,6 +119,7 @@ target_sources(yt-yt-core PRIVATE
   ${CMAKE_SOURCE_DIR}/yt/yt/core/concurrency/fair_share_invoker_queue.cpp
   ${CMAKE_SOURCE_DIR}/yt/yt/core/concurrency/fair_share_queue_scheduler_thread.cpp
   ${CMAKE_SOURCE_DIR}/yt/yt/core/concurrency/fair_share_thread_pool.cpp
+  ${CMAKE_SOURCE_DIR}/yt/yt/core/concurrency/fair_share_weighted_thread_pool.cpp
   ${CMAKE_SOURCE_DIR}/yt/yt/core/concurrency/fair_throttler.cpp
   ${CMAKE_SOURCE_DIR}/yt/yt/core/concurrency/fiber_scheduler_thread.cpp
   ${CMAKE_SOURCE_DIR}/yt/yt/core/concurrency/fiber.cpp

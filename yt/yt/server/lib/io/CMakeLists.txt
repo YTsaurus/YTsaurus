@@ -39,5 +39,6 @@ target_sources(server-lib-io PRIVATE
   ${CMAKE_SOURCE_DIR}/yt/yt/server/lib/io/read_request_combiner.cpp
   ${CMAKE_SOURCE_DIR}/yt/yt/server/lib/io/dynamic_io_engine.cpp
   ${CMAKE_SOURCE_DIR}/yt/yt/server/lib/io/io_engine_base.cpp
+  ${CMAKE_SOURCE_DIR}/yt/yt/server/lib/io/io_engine_fair.cpp
   ${CMAKE_SOURCE_DIR}/yt/yt/server/lib/io/io_engine_uring.cpp
 )

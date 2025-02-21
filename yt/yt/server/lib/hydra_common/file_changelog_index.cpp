@@ -36,6 +36,7 @@ TFileChangelogIndex::TFileChangelogIndex(
     , FileName_(std::move(fileName))
     , Config_(std::move(config))
     , WorkloadCategory_(workloadCategory)
+    , WorkloadDescriptor_(workloadCategory, 0, {}, {}, {}, "TFileChangelogIndex", {})
     , Logger(HydraLogger.WithTag("Path: %v", FileName_))
     , MemoryUsageTrackerGuard_(TMemoryUsageTrackerGuard::Acquire(memoryUsageTracker, 0))
 { }
@@ -49,12 +50,12 @@ EFileChangelogIndexOpenResult TFileChangelogIndex::Open()
         return EFileChangelogIndexOpenResult::MissingCreated;
     }
 
-    auto handle = WaitFor(IOEngine_->Open({.Path = FileName_, .Mode = RdWr}))
+    auto handle = WaitFor(IOEngine_->Open({.Path = FileName_, .Mode = RdWr}, WorkloadDescriptor_, {}))
         .ValueOrThrow();
 
     auto recreate = [&] (EFileChangelogIndexOpenResult result) {
         if (handle) {
-            WaitFor(IOEngine_->Close({.Handle = handle}))
+            WaitFor(IOEngine_->Close({.Handle = handle}, WorkloadDescriptor_, {}))
                 .ThrowOnError();
         }
 
@@ -65,9 +66,9 @@ EFileChangelogIndexOpenResult TFileChangelogIndex::Open()
     auto buffer = WaitFor(
         IOEngine_->Read(
             {{.Handle = handle, .Offset = 0, .Size = handle->GetLength()}},
-            // TODO(babenko): better workload category?
-            EWorkloadCategory::UserBatch,
-            GetRefCountedTypeCookie<TFileChangelogIndexScratchTag>()))
+            WorkloadDescriptor_,
+            GetRefCountedTypeCookie<TFileChangelogIndexScratchTag>(),
+            {}))
         .ValueOrThrow()
         .OutputBuffers[0];
 
@@ -93,10 +94,10 @@ EFileChangelogIndexOpenResult TFileChangelogIndex::Open()
     auto truncate = [&] (EFileChangelogIndexOpenResult result) {
         IndexFilePosition_ = current - buffer.Begin();
 
-        WaitFor(IOEngine_->Resize({.Handle = handle, .Size = IndexFilePosition_}))
+        WaitFor(IOEngine_->Resize({.Handle = handle, .Size = IndexFilePosition_}, WorkloadDescriptor_, {}))
             .ThrowOnError();
 
-        WaitFor(IOEngine_->FlushFile({.Handle = handle, .Mode = EFlushFileMode::All}))
+        WaitFor(IOEngine_->FlushFile({.Handle = handle, .Mode = EFlushFileMode::All}, WorkloadDescriptor_, {}))
             .ThrowOnError();
 
         YT_LOG_DEBUG("Changelog index file truncated (RecordCount: %v, IndexFilePosition: %v, DataFileLength: %v)",
@@ -172,7 +173,7 @@ void TFileChangelogIndex::Create()
 {
     Clear();
 
-    auto handle = WaitFor(IOEngine_->Open({.Path = FileName_, .Mode = RdWr | CreateAlways}))
+    auto handle = WaitFor(IOEngine_->Open({.Path = FileName_, .Mode = RdWr | CreateAlways}, WorkloadDescriptor_, {}))
         .ValueOrThrow();
 
     auto buffer = TSharedMutableRef::Allocate<TFileChangelogIndexScratchTag>(sizeof(TChangelogIndexHeader), {.InitializeStorage = false});
@@ -185,7 +186,8 @@ void TFileChangelogIndex::Create()
             .Offset = 0,
             .Buffers = {std::move(buffer)}
         },
-        WorkloadCategory_))
+        WorkloadDescriptor_,
+        {}))
         .ThrowOnError();
 
     Handle_ = std::move(handle);
@@ -200,7 +202,7 @@ void TFileChangelogIndex::Close()
         .ThrowOnError();
 
     if (auto handle = std::exchange(Handle_, nullptr)) {
-        WaitFor(IOEngine_->Close({.Handle = handle, .Flush = true}))
+        WaitFor(IOEngine_->Close({.Handle = handle, .Flush = true}, WorkloadDescriptor_, {}))
             .ThrowOnError();
     }
 }
@@ -332,7 +334,8 @@ void TFileChangelogIndex::AsyncFlush()
             .Buffers = {std::move(buffer)},
             .Flush = true,
         },
-        WorkloadCategory_)
+        WorkloadDescriptor_,
+        {})
         .Apply(BIND([=, this, this_ = MakeStrong(this)] {
             YT_VERIFY(Flushing_.exchange(false));
             YT_LOG_DEBUG("Finished flushing changelog file index segment");

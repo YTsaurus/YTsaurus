@@ -106,6 +106,10 @@ struct IIOEngine
         i64 Offset = -1;
         i64 Size = -1;
         bool Async = false;
+        bool UseSpecifiedFlags = false;
+        bool SyncFileRangeWaitBefore = false;
+        bool SyncFileRangeWrite = false;
+        bool SyncFileRangeWaitAfter = false;
     };
 
     struct TFlushDirectoryRequest
@@ -131,44 +135,51 @@ struct IIOEngine
 
     virtual TFuture<TReadResponse> Read(
         std::vector<TReadRequest> requests,
-        EWorkloadCategory category,
+        const TWorkloadDescriptor& descriptor,
         TRefCountedTypeCookie tagCookie,
-        TSessionId sessionId = {},
+        TSessionId sessionId,
         bool useDedicatedAllocations = false) = 0;
     virtual TFuture<void> Write(
         TWriteRequest request,
-        EWorkloadCategory category = EWorkloadCategory::Idle,
-        TSessionId sessionId = {}) = 0;
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) = 0;
 
     virtual TFuture<void> FlushFile(
         TFlushFileRequest request,
-        EWorkloadCategory category = EWorkloadCategory::Idle) = 0;
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) = 0;
     virtual TFuture<void> FlushFileRange(
         TFlushFileRangeRequest request,
-        EWorkloadCategory category = EWorkloadCategory::Idle,
-        TSessionId sessionId = {}) = 0;
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) = 0;
     virtual TFuture<void> FlushDirectory(
         TFlushDirectoryRequest request,
-        EWorkloadCategory category = EWorkloadCategory::Idle) = 0;
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) = 0;
 
     virtual TFuture<TIOEngineHandlePtr> Open(
         TOpenRequest request,
-        EWorkloadCategory category = EWorkloadCategory::Idle) = 0;
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) = 0;
     virtual TFuture<void> Close(
         TCloseRequest request,
-        EWorkloadCategory category = EWorkloadCategory::Idle) = 0;
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) = 0;
 
     virtual TFuture<void> Allocate(
         TAllocateRequest request,
-        EWorkloadCategory category = EWorkloadCategory::Idle) = 0;
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) = 0;
 
     virtual TFuture<void> Lock(
         TLockRequest request,
-        EWorkloadCategory category = EWorkloadCategory::Idle) = 0;
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) = 0;
 
     virtual TFuture<void> Resize(
         TResizeRequest request,
-        EWorkloadCategory category = EWorkloadCategory::Idle) = 0;
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) = 0;
 
     virtual bool IsSick() const = 0;
 
@@ -183,8 +194,8 @@ struct IIOEngine
     // Extension methods.
     TFuture<TSharedRef> ReadAll(
         const TString& path,
-        EWorkloadCategory category = EWorkloadCategory::Idle,
-        TSessionId sessionId = {});
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId);
 };
 
 DEFINE_REFCOUNTED_TYPE(IIOEngine)

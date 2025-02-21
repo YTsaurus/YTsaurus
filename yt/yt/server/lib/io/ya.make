@@ -19,6 +19,7 @@ SRCS(
     read_request_combiner.cpp
     dynamic_io_engine.cpp
     io_engine_base.cpp
+    io_engine_fair.cpp
     io_engine_uring.cpp
 )
 

@@ -83,7 +83,7 @@ TEST_P(TIOEngineTest, WriteError)
     auto fileName = GenerateRandomFileName("IOEngine");
     TTempFile tempFile(fileName);
 
-    auto file = engine->Open({fileName, RdWr | CreateAlways})
+    auto file = engine->Open({fileName, RdWr | CreateAlways}, {}, {})
         .Get()
         .ValueOrThrow();
 
@@ -96,7 +96,9 @@ TEST_P(TIOEngineTest, WriteError)
             .Offset = -10,
             .Buffers = {data.Slice(0, 10), data.Slice(20, 30), data, data.Slice(40, 50)},
             .Flush = true,
-        })
+        },
+        {},
+        {})
             .Get();
     };
 
@@ -113,7 +115,7 @@ TEST_P(TIOEngineTest, ReadWrite)
     auto fileName = GenerateRandomFileName("IOEngine");
     TTempFile tempFile(fileName);
 
-    auto file = engine->Open({fileName, RdWr | CreateAlways})
+    auto file = engine->Open({fileName, RdWr | CreateAlways}, {}, {})
         .Get()
         .ValueOrThrow();
 
@@ -126,19 +128,21 @@ TEST_P(TIOEngineTest, ReadWrite)
             .Offset = 0,
             .Buffers = {data.Slice(1, 1), data.Slice(1, 1), data, data.Slice(1, 1)},
             .Flush = true,
-        })
+        },
+        {},
+        {})
             .Get()
             .ThrowOnError();
     };
 
     auto flush = [&] {
-        engine->FlushFile({file, EFlushFileMode::Data})
+        engine->FlushFile({file, EFlushFileMode::Data}, {}, {})
             .Get()
             .ThrowOnError();
     };
 
     auto read = [&] (i64 offset, i64 size) {
-        auto result = engine->Read({{file, offset, size}}, EWorkloadCategory::Idle, {}, {}, UseDedicatedAllocations())
+        auto result = engine->Read({{file, offset, size}}, {}, {}, {}, UseDedicatedAllocations())
             .Get()
             .ValueOrThrow();
         EXPECT_TRUE(result.OutputBuffers.size() == 1);
@@ -175,7 +179,7 @@ TEST_P(TIOEngineTest, ReadAll)
 
     WriteFile(fileName, data);
 
-    auto readData = engine->ReadAll(fileName)
+    auto readData = engine->ReadAll(fileName, {}, {})
         .Get()
         .ValueOrThrow();
 
@@ -198,12 +202,12 @@ TEST_P(TIOEngineTest, DirectIO)
 
     WriteFile(fileName, data);
 
-    auto file = engine->Open({fileName, RdOnly | DirectAligned})
+    auto file = engine->Open({fileName, RdOnly | DirectAligned}, {}, {})
         .Get()
         .ValueOrThrow();
 
     auto read = [&] (i64 offset, i64 size) {
-        auto result = engine->Read({{file, offset, size}}, EWorkloadCategory::Idle, {}, {}, UseDedicatedAllocations())
+        auto result = engine->Read({{file, offset, size}}, {}, {}, {}, UseDedicatedAllocations())
             .Get()
             .ValueOrThrow();
         EXPECT_TRUE(result.OutputBuffers.size() == 1);
@@ -236,12 +240,12 @@ TEST_P(TIOEngineTest, DirectIOUnalignedFile)
 
     WriteFile(fileName, data);
 
-    auto file = engine->Open({fileName, RdOnly | DirectAligned})
+    auto file = engine->Open({fileName, RdOnly | DirectAligned}, {}, {})
         .Get()
         .ValueOrThrow();
 
     auto read = [&] (i64 offset, i64 size) {
-        auto result = engine->Read({{file, offset, size}}, EWorkloadCategory::Idle, {}, {}, UseDedicatedAllocations())
+        auto result = engine->Read({{file, offset, size}}, {}, {}, {}, UseDedicatedAllocations())
             .Get()
             .ValueOrThrow();
         EXPECT_TRUE(result.OutputBuffers.size() == 1);
@@ -270,7 +274,7 @@ TEST_P(TIOEngineTest, ManyConcurrentDirectIOReads)
 
     WriteFile(fileName, data);
 
-    auto file = engine->Open({fileName, RdOnly | DirectAligned})
+    auto file = engine->Open({fileName, RdOnly | DirectAligned}, {}, {})
         .Get()
         .ValueOrThrow();
 
@@ -278,7 +282,7 @@ TEST_P(TIOEngineTest, ManyConcurrentDirectIOReads)
     constexpr auto N = 100;
 
     for (int i = 0; i < N; ++i) {
-        futures.push_back(engine->Read({{file, 10, 20}}, EWorkloadCategory::Idle, {}, {}, UseDedicatedAllocations()));
+        futures.push_back(engine->Read({{file, 10, 20}}, {}, {}, {}, UseDedicatedAllocations()));
     }
 
     AllSucceeded(std::move(futures))
@@ -321,7 +325,7 @@ private:
 
         WriteFile(fileName, data);
 
-        auto file = Engine_->Open({fileName, RdOnly})
+        auto file = Engine_->Open({fileName, RdOnly}, {}, {})
             .Get()
             .ValueOrThrow();
 
@@ -339,7 +343,7 @@ private:
                         .Size = 10,
                     });
                 }
-                futures.push_back(Engine_->Read(readRequests, EWorkloadCategory::Idle, {}, {}, true));
+                futures.push_back(Engine_->Read(readRequests, {}, {}, {}, true));
             }
 
             WaitFor(AllSucceeded(futures, {.CancelInputOnShortcut = false}))
@@ -420,7 +424,7 @@ TEST_P(TIOEngineTest, DirectIOAligned)
 
     WriteFile(fileName, data);
 
-    auto file = engine->Open({fileName, RdOnly | DirectAligned})
+    auto file = engine->Open({fileName, RdOnly | DirectAligned}, {}, {})
         .Get()
         .ValueOrThrow();
 
@@ -428,7 +432,7 @@ TEST_P(TIOEngineTest, DirectIOAligned)
         for (auto& request : requests) {
             request.Handle = file;
         }
-        auto result = engine->Read(requests, EWorkloadCategory::Idle, {}, {}, UseDedicatedAllocations())
+        auto result = engine->Read(requests, {}, {}, {}, UseDedicatedAllocations())
             .Get()
             .ValueOrThrow();
 
@@ -485,6 +489,10 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple(EIOEngineType::FairShareThreadPool, CustomConfig, AllocatorBehaviourCollocate),
         std::make_tuple(EIOEngineType::FairShareThreadPool, DefaultConfig, AllocatorBehaviourSeparate),
 
+        std::make_tuple(EIOEngineType::WeightedFairShareThreadPool, DefaultConfig, AllocatorBehaviourCollocate),
+        std::make_tuple(EIOEngineType::WeightedFairShareThreadPool, CustomConfig, AllocatorBehaviourCollocate),
+        std::make_tuple(EIOEngineType::WeightedFairShareThreadPool, DefaultConfig, AllocatorBehaviourSeparate),
+
         std::make_tuple(EIOEngineType::Uring, DefaultConfig, AllocatorBehaviourCollocate),
         std::make_tuple(EIOEngineType::Uring, CustomConfig, AllocatorBehaviourCollocate),
         std::make_tuple(EIOEngineType::Uring, DefaultConfig, AllocatorBehaviourSeparate),
@@ -502,16 +510,16 @@ TEST_P(TIOEngineTest, Lock)
     auto fileName = GenerateRandomFileName("IOEngine");
     TTempFile tempFile(fileName);
 
-    auto firstHandler = engine->Open({fileName, RdWr | CreateAlways})
+    auto firstHandler = engine->Open({fileName, RdWr | CreateAlways}, {}, {})
         .Get()
         .ValueOrThrow();
 
-    engine->Lock({firstHandler, ELockFileMode::Exclusive})
+    engine->Lock({firstHandler, ELockFileMode::Exclusive}, {}, {})
         .Get()
         .ThrowOnError();
 
     // Open file once more.
-    auto secondHandler = engine->Open({fileName, RdOnly})
+    auto secondHandler = engine->Open({fileName, RdOnly}, {}, {})
         .Get()
         .ValueOrThrow();
 
@@ -521,12 +529,14 @@ TEST_P(TIOEngineTest, Lock)
             .Handle = secondHandler,
             .Mode = ELockFileMode::Shared,
             .Nonblocking = true,
-        })
+        },
+        {},
+        {})
             .Get()
             .ThrowOnError();
     }, NYT::TErrorException);
 
-    engine->Lock({firstHandler, ELockFileMode::Unlock})
+    engine->Lock({firstHandler, ELockFileMode::Unlock}, {}, {})
         .Get()
         .ThrowOnError();
 
@@ -534,7 +544,9 @@ TEST_P(TIOEngineTest, Lock)
         .Handle = secondHandler,
         .Mode = ELockFileMode::Shared,
         .Nonblocking = true,
-    })
+    },
+    {},
+    {})
         .Get()
         .ThrowOnError();
 
@@ -543,7 +555,9 @@ TEST_P(TIOEngineTest, Lock)
             .Handle = firstHandler,
             .Mode = ELockFileMode::Exclusive,
             .Nonblocking = true,
-        })
+        },
+        {},
+        {})
             .Get()
             .ThrowOnError();
     }, NYT::TErrorException);
@@ -552,7 +566,9 @@ TEST_P(TIOEngineTest, Lock)
         .Handle = firstHandler,
         .Mode = ELockFileMode::Shared,
         .Nonblocking = true,
-    })
+    },
+    {},
+    {})
         .Get()
         .ThrowOnError();
 }

@@ -106,6 +106,11 @@ DECLARE_REFCOUNTED_STRUCT(IPoolWeightProvider)
 
 DECLARE_REFCOUNTED_STRUCT(ITwoLevelFairShareThreadPool)
 
+namespace NFairShareWeightedThreadPool {
+    DECLARE_REFCOUNTED_STRUCT(IPoolWeightProvider)
+    DECLARE_REFCOUNTED_STRUCT(IFairShareWeightedThreadPool)
+} // namespace NFairShareWeightedThreadPool
+
 DECLARE_REFCOUNTED_CLASS(TFiber)
 
 DECLARE_REFCOUNTED_STRUCT(TFairThrottlerConfig)

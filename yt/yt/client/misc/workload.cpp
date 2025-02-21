@@ -29,17 +29,21 @@ TWorkloadDescriptor::TWorkloadDescriptor(
     int band,
     TInstant instant,
     std::vector<TString> annotations,
-    std::optional<NConcurrency::TFairShareThreadPoolTag> compressionFairShareTag)
+    std::optional<NConcurrency::TFairShareThreadPoolTag> compressionFairShareTag,
+    std::optional<TString> diskFairShareBucketTag,
+    std::optional<double> diskFairShareBucketWeight)
     : Category(category)
     , Band(band)
     , Instant(instant)
     , Annotations(std::move(annotations))
     , CompressionFairShareTag(std::move(compressionFairShareTag))
+    , DiskFairShareBucketTag(std::move(diskFairShareBucketTag))
+    , DiskFairShareBucketWeight(diskFairShareBucketWeight)
 { }
 
 TWorkloadDescriptor TWorkloadDescriptor::SetCurrentInstant() const
 {
-    return TWorkloadDescriptor(Category, Band, TInstant::Now(), Annotations, CompressionFairShareTag);
+    return TWorkloadDescriptor(Category, Band, TInstant::Now(), Annotations, CompressionFairShareTag, DiskFairShareBucketTag, DiskFairShareBucketWeight);
 }
 
 i64 TWorkloadDescriptor::GetPriority() const
@@ -89,6 +93,11 @@ i64 GetBasicPriority(EWorkloadCategory category)
     }
 }
 
+double GetBasicWeight(EWorkloadCategory category)
+{
+    return std::max(GetBasicPriority(category) / CategoryPriorityFactor + 1.0, 1.0);
+}
+
 IInvokerPtr GetCompressionInvoker(const TWorkloadDescriptor& workloadDescriptor)
 {
     if (workloadDescriptor.CompressionFairShareTag) {
@@ -112,6 +121,10 @@ struct TSerializableWorkloadDescriptor
         registrar.BaseClassParameter("category", &TWorkloadDescriptor::Category);
         registrar.BaseClassParameter("band", &TWorkloadDescriptor::Band)
             .Default(0);
+        registrar.BaseClassParameter("disk_fair_share_bucket_tag", &TWorkloadDescriptor::DiskFairShareBucketTag)
+            .Optional();
+        registrar.BaseClassParameter("disk_fair_share_bucket_weight", &TWorkloadDescriptor::DiskFairShareBucketWeight)
+            .Optional();
         registrar.BaseClassParameter("annotations", &TWorkloadDescriptor::Annotations)
             .Default();
     }
@@ -144,6 +157,12 @@ void ToProto(NYT::NProto::TWorkloadDescriptor* protoDescriptor, const TWorkloadD
     protoDescriptor->set_band(descriptor.Band);
     protoDescriptor->set_instant(ToProto<i64>(descriptor.Instant));
     ToProto(protoDescriptor->mutable_annotations(), descriptor.Annotations);
+    if (descriptor.DiskFairShareBucketTag) {
+        protoDescriptor->set_disk_fair_share_bucket_tag(*descriptor.DiskFairShareBucketTag);
+    }
+    if (descriptor.DiskFairShareBucketWeight) {
+        protoDescriptor->set_disk_fair_share_bucket_weight(*descriptor.DiskFairShareBucketWeight);
+    }
 }
 
 void FromProto(TWorkloadDescriptor* descriptor, const NYT::NProto::TWorkloadDescriptor& protoDescriptor)
@@ -152,6 +171,12 @@ void FromProto(TWorkloadDescriptor* descriptor, const NYT::NProto::TWorkloadDesc
     descriptor->Band = protoDescriptor.band();
     descriptor->Instant = FromProto<TInstant>(protoDescriptor.instant());
     FromProto(&descriptor->Annotations, protoDescriptor.annotations());
+    if (protoDescriptor.Hasdisk_fair_share_bucket_tag()) {
+        descriptor->DiskFairShareBucketTag = protoDescriptor.disk_fair_share_bucket_tag();
+    }
+    if (protoDescriptor.Hasdisk_fair_share_bucket_weight()) {
+        descriptor->DiskFairShareBucketWeight = protoDescriptor.disk_fair_share_bucket_weight();
+    }
 }
 
 void FormatValue(
@@ -175,6 +200,12 @@ void FormatValue(
             }
         }
         builder->AppendChar('}');
+    }
+    if (descriptor.DiskFairShareBucketTag) {
+        builder->AppendFormat(":%v", *descriptor.DiskFairShareBucketTag);
+    }
+    if (descriptor.DiskFairShareBucketWeight) {
+        builder->AppendFormat(":%v", *descriptor.DiskFairShareBucketWeight);
     }
 }
 

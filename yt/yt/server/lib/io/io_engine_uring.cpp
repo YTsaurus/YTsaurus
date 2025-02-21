@@ -1638,7 +1638,7 @@ public:
 
     TFuture<TReadResponse> Read(
         std::vector<TReadRequest> requests,
-        EWorkloadCategory category,
+        const TWorkloadDescriptor& descriptor,
         TRefCountedTypeCookie tagCookie,
         TSessionId sessionId,
         bool useDedicatedAllocations) override
@@ -1664,13 +1664,13 @@ public:
             readRequestCombiner,
             combinedRequests,
             requestSlicer,
-            category,
+            descriptor.Category,
             sessionId);
     }
 
     TFuture<void> Write(
         TWriteRequest request,
-        EWorkloadCategory category,
+        const TWorkloadDescriptor& descriptor,
         TSessionId sessionId) override
     {
         std::vector<TFuture<void>> futures;
@@ -1687,24 +1687,25 @@ public:
             uringRequests.push_back(std::move(uringRequest));
         }
 
-        ThreadPool_->SubmitRequests(uringRequests, category, sessionId);
+        ThreadPool_->SubmitRequests(uringRequests, descriptor.Category, sessionId);
 
         return AllSucceeded(std::move(futures));
     }
 
     TFuture<void> FlushFile(
         TFlushFileRequest request,
-        EWorkloadCategory category) override
+        const TWorkloadDescriptor& descriptor,
+        TSessionId sessionId) override
     {
         auto uringRequest = std::make_unique<TFlushFileUringRequest>();
         uringRequest->Type = EUringRequestType::FlushFile;
         uringRequest->FlushFileRequest = std::move(request);
-        return SubmitRequest<void>(std::move(uringRequest), category, { });
+        return SubmitRequest<void>(std::move(uringRequest), descriptor.Category, sessionId);
     }
 
     virtual TFuture<void> FlushFileRange(
         TFlushFileRangeRequest /*request*/,
-        EWorkloadCategory /*category*/,
+        const TWorkloadDescriptor& /*descriptor*/,
         TSessionId /*sessionId*/) override
     {
         // TODO (capone212): implement

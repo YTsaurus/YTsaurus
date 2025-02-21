@@ -167,7 +167,7 @@ TFuture<void> TChunkFileReader::PrepareToReadChunkFragments(
         ChunkFragmentReadsPreparedFuture_[directIOFlag] = chunkFragmentPromise;
         guard.Release();
 
-        chunkFragmentFuture = OpenDataFile(directIOFlag)
+        chunkFragmentFuture = OpenDataFile(options, directIOFlag)
             .Apply(BIND([=, this, this_ = MakeStrong(this)] (const TIOEngineHandlePtr& /*handle*/) {
                 {
                     auto guard = Guard(ChunkFragmentReadsLock_);
@@ -330,7 +330,7 @@ TFuture<std::vector<TBlock>> TChunkFileReader::DoReadBlocks(
     }
 
     if (!dataFile) {
-        auto asyncDataFile = OpenDataFile(GetDirectIOFlag(/*useDirectIO*/ false));
+        auto asyncDataFile = OpenDataFile(options, GetDirectIOFlag(/*useDirectIO*/ false));
         auto optionalDataFileOrError = asyncDataFile.TryGet();
         if (!optionalDataFileOrError || !optionalDataFileOrError->IsOK()) {
             return asyncDataFile
@@ -365,7 +365,7 @@ TFuture<std::vector<TBlock>> TChunkFileReader::DoReadBlocks(
             firstBlockInfo.Offset,
             totalSize
         }},
-        options.WorkloadDescriptor.Category,
+        options.WorkloadDescriptor,
         GetRefCountedTypeCookie<TChunkFileReaderBufferTag>(),
         options.ReadSessionId,
         options.UseDedicatedAllocations)
@@ -386,7 +386,7 @@ TFuture<TRefCountedChunkMetaPtr> TChunkFileReader::DoReadMeta(
     YT_LOG_DEBUG("Started reading chunk meta file (FileName: %v)",
         metaFileName);
 
-    return IOEngine_->ReadAll(metaFileName, options.WorkloadDescriptor.Category, options.ReadSessionId)
+    return IOEngine_->ReadAll(metaFileName, options.WorkloadDescriptor, options.ReadSessionId)
         .Apply(BIND(&TChunkFileReader::OnMetaRead, MakeStrong(this), metaFileName, options.ChunkReaderStatistics));
 }
 
@@ -461,7 +461,9 @@ TRefCountedChunkMetaPtr TChunkFileReader::OnMetaRead(
     return New<TRefCountedChunkMeta>(std::move(meta));
 }
 
-TFuture<TIOEngineHandlePtr> TChunkFileReader::OpenDataFile(EDirectIOFlag useDirectIO)
+TFuture<TIOEngineHandlePtr> TChunkFileReader::OpenDataFile(
+    const TClientChunkReadOptions& options,
+    EDirectIOFlag useDirectIO)
 {
     auto guard = Guard(DataFileHandleLock_);
     if (!DataFileHandleFuture_[useDirectIO]) {
@@ -472,7 +474,7 @@ TFuture<TIOEngineHandlePtr> TChunkFileReader::OpenDataFile(EDirectIOFlag useDire
         if (useDirectIO == EDirectIOFlag::On) {
             TIOEngineHandle::MarkOpenForDirectIO(&mode);
         }
-        DataFileHandleFuture_[useDirectIO] = IOEngine_->Open({FileName_, mode})
+        DataFileHandleFuture_[useDirectIO] = IOEngine_->Open({FileName_, mode}, options.WorkloadDescriptor, static_cast<IIOEngine::TSessionId>(ChunkId_))
             .ToUncancelable()
             .Apply(BIND(&TChunkFileReader::OnDataFileOpened, MakeStrong(this), useDirectIO));
     }
