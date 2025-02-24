@@ -1,14 +1,10 @@
 from .helpers import get_tests_sandbox
 from .conftest import YtTestEnvironment, authors
-from .helpers import TEST_DIR, wait
 
 import mock
-import pytest
 
 import yt.wrapper as yt
 import yt.wrapper.tvm as tvm
-
-from yt.common import update
 
 
 @authors("ignat")
@@ -59,45 +55,3 @@ def test_tvm_user_ticket():
         except Exception:
             pass
         assert m.call_args.kwargs["headers"]["X-Ya-User-Ticket"] == "3:user:b64BODY:b64SIGN"
-
-
-@pytest.mark.usefixtures("yt_env_with_authentication")
-class TestImpresonation(object):
-    @authors("achulkov2")
-    def test_impersonation(self):
-        yt.create("user", attributes={"name": "alice"})
-        yt.set("//sys/tokens/bob", "alice")
-
-        yt.set(f"{TEST_DIR}/@acl/end", {"action": "allow", "subjects": ["alice"], "permissions": ["read", "write"]})
-
-        root_client_with_impersonation = yt.YtClient(config=update(yt.config.config, {"impersonation_user": "alice"}))
-
-        assert root_client_with_impersonation.get_user_name() == "alice"
-        node = TEST_DIR + "/node"
-        root_client_with_impersonation.create("map_node", node, attributes={"account": "tmp"})
-        assert root_client_with_impersonation.get(node + "/@owner") == "alice"
-
-        alice_client_with_impersonation = yt.YtClient(config=update(yt.config.config, {"token": "bob", "impersonation_user": "root"}))
-        # Oh my, Alice, what are you doing, you are not a superuser!
-        with pytest.raises(yt.YtError):
-            alice_client_with_impersonation.exists("/")
-
-        yt.add_member("alice", "superusers")
-
-        # Now it is OK, once caches are updated.
-        wait(lambda: alice_client_with_impersonation.exists("/"), ignore_exceptions=True)
-
-        yt.set("//sys/users/alice/@banned", True)
-
-        def wait_for_error(callback):
-            def check():
-                try:
-                    callback()
-                    return False
-                except yt.YtError:
-                    return True
-
-            wait(check)
-
-        # Alice is banned, she can't do anything.
-        wait_for_error(lambda: alice_client_with_impersonation.exists("/"))

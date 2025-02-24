@@ -12,70 +12,9 @@
 # Please refer to the build instructions in the repository for more information about manual
 # changes in this file.
 
-find_package(linux-headers-generic REQUIRED)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-aarch64.txt)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-x86_64.txt)
+endif()
 
-add_subdirectory(unittests)
-
-add_executable(ytserver-all)
-
-
-target_compile_options(ytserver-all PRIVATE
-  -Wdeprecated-this-capture
-  -Wimplicit-fallthrough
-)
-
-target_link_libraries(ytserver-all PUBLIC
-  linux-headers-generic::linux-headers-generic
-  contrib-libs-cxxsupp
-  yutil
-  library-cpp-cpuid_check
-  library-query-engine
-  library-query-row_comparer
-  yt-server-cell_balancer
-  yt-server-clock_server
-  yt-server-controller_agent
-  yt-server-cypress_proxy
-  yt-server-discovery_server
-  yt-server-exec
-  yt-server-http_proxy
-  yt-server-job_proxy
-  yt-server-kafka_proxy
-  yt-server-log_tailer
-  yt-server-master
-  yt-server-master_cache
-  yt-server-node
-  yt-server-queue_agent
-  yt-server-query_tracker
-  yt-server-rpc_proxy
-  yt-server-scheduler
-  yt-server-tablet_balancer
-  yt-server-tcp_proxy
-  yt-server-timestamp_provider
-  yt-server-tools
-  yt-server-replicated_table_tracker
-  yt-server-multidaemon
-  yt-library-oom
-)
-
-target_allocator(ytserver-all
-  cpp-malloc-tcmalloc
-  libs-tcmalloc-default
-)
-
-target_link_options(ytserver-all PRIVATE
-  -ldl
-  -lrt
-  -Wl,--no-as-needed
-  -fPIC
-  -fPIC
-  -lrt
-  -ldl
-  -lutil
-)
-
-target_sources(ytserver-all PRIVATE
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/all/main.cpp
-)
-
-
-vcs_info(ytserver-all)

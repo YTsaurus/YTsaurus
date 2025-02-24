@@ -12,83 +12,9 @@
 # Please refer to the build instructions in the repository for more information about manual
 # changes in this file.
 
-find_package(linux-headers-generic REQUIRED)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-aarch64.txt)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-x86_64.txt)
+endif()
 
-add_executable(unittester-server-lib-io)
-
-
-target_compile_options(unittester-server-lib-io PRIVATE
-  -Wdeprecated-this-capture
-  -Wimplicit-fallthrough
-)
-
-target_link_libraries(unittester-server-lib-io PUBLIC
-  linux-headers-generic::linux-headers-generic
-  contrib-libs-cxxsupp
-  yutil
-  library-cpp-cpuid_check
-  cpp-testing-gtest
-  cpp-testing-gtest_main
-  yt-yt-build
-  server-lib-io
-)
-
-target_allocator(unittester-server-lib-io
-  cpp-malloc-tcmalloc
-  libs-tcmalloc-default
-)
-
-target_link_options(unittester-server-lib-io PRIVATE
-  -ldl
-  -lrt
-  -Wl,--no-as-needed
-  -fPIC
-  -fPIC
-  -lrt
-  -ldl
-  -lutil
-)
-
-target_sources(unittester-server-lib-io PRIVATE
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/io/unittests/erasure_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/io/unittests/gentle_loader_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/io/unittests/chunk_file_writer_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/io/unittests/io_engine_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/io/unittests/io_tracker_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/io/unittests/read_request_combiner_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/io/unittests/io_request_slicer_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/io/unittests/io_workload_model_ut.cpp
-)
-
-
-add_test(
-  NAME
-  unittester-server-lib-io
-  COMMAND
-  unittester-server-lib-io
-)
-
-set_property(
-  TEST
-  unittester-server-lib-io
-  PROPERTY
-  LABELS
-  MEDIUM
-)
-
-set_property(
-  TEST
-  unittester-server-lib-io
-  PROPERTY
-  ENVIRONMENT
-)
-
-vcs_info(unittester-server-lib-io)
-
-set_property(
-  TEST
-  unittester-server-lib-io
-  PROPERTY
-  PROCESSORS
-  1
-)

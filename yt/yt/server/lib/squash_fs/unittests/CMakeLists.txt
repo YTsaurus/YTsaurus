@@ -12,78 +12,9 @@
 # Please refer to the build instructions in the repository for more information about manual
 # changes in this file.
 
-find_package(linux-headers-generic REQUIRED)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-aarch64.txt)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-x86_64.txt)
+endif()
 
-add_executable(yt-yt-server-lib-squash_fs-unittests)
-
-
-target_compile_options(yt-yt-server-lib-squash_fs-unittests PRIVATE
-  -Wdeprecated-this-capture
-  -Wimplicit-fallthrough
-)
-
-target_link_libraries(yt-yt-server-lib-squash_fs-unittests PUBLIC
-  linux-headers-generic::linux-headers-generic
-  contrib-libs-cxxsupp
-  yutil
-  library-cpp-cpuid_check
-  cpp-testing-gtest
-  cpp-testing-gtest_main
-  server-lib-nbd
-  yt-core-test_framework
-  yt-yt-client
-  yt-yt-ytlib
-)
-
-target_allocator(yt-yt-server-lib-squash_fs-unittests
-  cpp-malloc-tcmalloc
-  libs-tcmalloc-no_percpu_cache
-)
-
-target_link_options(yt-yt-server-lib-squash_fs-unittests PRIVATE
-  -ldl
-  -lrt
-  -Wl,--no-as-needed
-  -fPIC
-  -fPIC
-  -lrt
-  -ldl
-  -lutil
-)
-
-target_sources(yt-yt-server-lib-squash_fs-unittests PRIVATE
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/squash_fs/unittests/squash_fs_ut.cpp
-)
-
-
-add_test(
-  NAME
-  yt-yt-server-lib-squash_fs-unittests
-  COMMAND
-  yt-yt-server-lib-squash_fs-unittests
-)
-
-set_property(
-  TEST
-  yt-yt-server-lib-squash_fs-unittests
-  PROPERTY
-  LABELS
-  LARGE
-)
-
-set_property(
-  TEST
-  yt-yt-server-lib-squash_fs-unittests
-  PROPERTY
-  ENVIRONMENT
-)
-
-vcs_info(yt-yt-server-lib-squash_fs-unittests)
-
-set_property(
-  TEST
-  yt-yt-server-lib-squash_fs-unittests
-  PROPERTY
-  PROCESSORS
-  1
-)

@@ -12,50 +12,9 @@
 # Please refer to the build instructions in the repository for more information about manual
 # changes in this file.
 
-add_library(isa-l-erasure_code-aarch64)
-
-
-target_compile_options(isa-l-erasure_code-aarch64 PRIVATE
-  -D__ASSEMBLY__
-  $<IF:$<CXX_COMPILER_ID:MSVC>,,-Wno-everything>
-)
-
-target_include_directories(isa-l-erasure_code-aarch64 PRIVATE
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/include
-)
-
-target_link_libraries(isa-l-erasure_code-aarch64 PUBLIC
-  contrib-libs-cxxsupp
-)
-
-target_sources(isa-l-erasure_code-aarch64 PRIVATE
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/ec_multibinary_arm.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_2vect_dot_prod_neon.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_2vect_dot_prod_sve.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_2vect_mad_neon.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_2vect_mad_sve.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_3vect_dot_prod_neon.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_3vect_dot_prod_sve.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_3vect_mad_neon.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_3vect_mad_sve.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_4vect_dot_prod_neon.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_4vect_dot_prod_sve.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_4vect_mad_neon.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_4vect_mad_sve.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_5vect_dot_prod_neon.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_5vect_dot_prod_sve.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_5vect_mad_neon.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_5vect_mad_sve.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_6vect_dot_prod_sve.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_6vect_mad_neon.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_6vect_mad_sve.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_7vect_dot_prod_sve.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_8vect_dot_prod_sve.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_vect_dot_prod_neon.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_vect_dot_prod_sve.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_vect_mad_neon.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_vect_mad_sve.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_vect_mul_neon.S
-  ${PROJECT_SOURCE_DIR}/contrib/libs/isa-l/erasure_code/aarch64/gf_vect_mul_sve.S
-)
+if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+  include(CMakeLists.darwin-arm64.txt)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-aarch64.txt)
+endif()
 

@@ -16,6 +16,8 @@ class App(ConanFile):
     def requirements(self):
         if self.settings.os == "Linux":
             self.requires("linux-headers-generic/6.5.9")
+        if self.settings.os == "Linux":
+            self.requires("linux-headers-generic/6.5.9")
 
     def build_requirements(self):
         self.tool_requires("bison/3.8.2")

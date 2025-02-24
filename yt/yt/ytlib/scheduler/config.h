@@ -620,6 +620,9 @@ public:
 
     std::optional<TDuration> DelayInsideMaterialize;
 
+    bool ReportInvalidNeededResourcesInMaterialize;
+    bool ReportInvalidNeededResourcesInRevive;
+
     //! The following delays are used inside the scheduler.
 
     TDelayConfigPtr ScheduleAllocationDelayScheduler;

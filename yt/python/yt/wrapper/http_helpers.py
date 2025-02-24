@@ -718,9 +718,9 @@ def get_user_name(token=None, headers=None, client=None):
 
     version = get_http_api_version(client=client)
 
-    headers = headers or {}
-
     if version in ("v3", "v4"):
+        if headers is None:
+            headers = {}
         if token is not None:
             headers["Authorization"] = "OAuth " + token.strip()
         data = None
@@ -730,10 +730,6 @@ def get_user_name(token=None, headers=None, client=None):
             return None
         data = "token=" + token.strip()
         verb = "login"
-
-    impersonation_user = get_config(client).get("impersonation_user")
-    if impersonation_user is not None:
-        headers["X-YT-User-Name"] = impersonation_user
 
     response = make_request_with_retries(
         "post",

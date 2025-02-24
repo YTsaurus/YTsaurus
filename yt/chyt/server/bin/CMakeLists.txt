@@ -12,46 +12,9 @@
 # Please refer to the build instructions in the repository for more information about manual
 # changes in this file.
 
-find_package(linux-headers-generic REQUIRED)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-aarch64.txt)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-x86_64.txt)
+endif()
 
-add_executable(ytserver-clickhouse)
-
-
-target_compile_options(ytserver-clickhouse PRIVATE
-  -Wdeprecated-this-capture
-  -Wimplicit-fallthrough
-  -fno-inline
-)
-
-target_link_libraries(ytserver-clickhouse PUBLIC
-  linux-headers-generic::linux-headers-generic
-  contrib-libs-cxxsupp
-  yutil
-  library-cpp-cpuid_check
-  yt-library-re2
-  yt-chyt-server
-  library-cpp-getopt
-)
-
-target_allocator(ytserver-clickhouse
-  cpp-malloc-tcmalloc
-  contrib-libs-tcmalloc
-)
-
-target_link_options(ytserver-clickhouse PRIVATE
-  -ldl
-  -lrt
-  -Wl,--no-as-needed
-  -fPIC
-  -fPIC
-  -lrt
-  -ldl
-  -lutil
-)
-
-target_sources(ytserver-clickhouse PRIVATE
-  ${PROJECT_SOURCE_DIR}/yt/chyt/server/bin/main.cpp
-)
-
-
-vcs_info(ytserver-clickhouse)

@@ -1126,7 +1126,7 @@ class TestColumnarStatisticsUseControllerAgentDefault(_TestColumnarStatisticsBas
 class TestReadSizeEstimation(_TestColumnarStatisticsBase):
     ENABLE_MULTIDAEMON = True
 
-    NUM_TEST_PARTITIONS = 8
+    NUM_TEST_PARTITIONS = 12
 
     NUM_NODES = 16
 
@@ -1140,8 +1140,12 @@ class TestReadSizeEstimation(_TestColumnarStatisticsBase):
     @pytest.mark.parametrize("optimize_for", ["scan", "lookup"])
     @pytest.mark.parametrize("erasure_codec", ["none", "isa_reed_solomon_6_3", "isa_lrc_12_2_2"])
     @pytest.mark.parametrize("striped_erasure", [False, True])
-    def test_estimated_input_statistics_with_column_groups(self, strict, mode, optimize_for, erasure_codec, striped_erasure):
+    @pytest.mark.parametrize("use_groups", [True, False])
+    def test_estimated_input_statistics_with_column_groups(self, strict, mode, optimize_for, erasure_codec, striped_erasure, use_groups):
         if striped_erasure and erasure_codec != "isa_lrc_12_2_2":
+            pytest.skip()
+
+        if not use_groups and (optimize_for != "scan" or erasure_codec != "none" or striped_erasure):
             pytest.skip()
 
         create("table", "//tmp/t_in", attributes={
@@ -1149,6 +1153,10 @@ class TestReadSizeEstimation(_TestColumnarStatisticsBase):
                 {"name": "small", "type": "string", "group": "group_1"},
                 {"name": "large_1", "type": "string", "group": "group_2"},
                 {"name": "large_2", "type": "string", "group": "group_1"},
+            ] if use_groups else [
+                {"name": "small", "type": "string"},
+                {"name": "large_1", "type": "string"},
+                {"name": "large_2", "type": "string"},
             ], strict=strict),
             "optimize_for": optimize_for,
         })

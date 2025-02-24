@@ -600,23 +600,37 @@ void TOperationControllerImpl::OnMaterializationFinished(const TErrorOr<TOperati
 {
     YT_VERIFY(PendingMaterializeResult_);
 
-    if (resultOrError.IsOK()) {
-        auto result = resultOrError.Value();
-
-        ControllerRuntimeData_->SetNeededResources(result.InitialNeededResources);
-        ControllerRuntimeData_->GroupedNeededResources() = result.InitialGroupedNeededResources;
-        InitialGroupedNeededResources_ = result.InitialGroupedNeededResources;
-
-        YT_LOG_DEBUG(
-            "Successful materialization result received "
-            "(Suspend: %v, InitialNeededResources: %v, InitialGroupedNeededResources: %v)",
-            result.Suspend,
-            FormatResources(result.InitialNeededResources),
-            InitialGroupedNeededResources_);
-    } else {
+    auto onError = [&] (const TError& error) {
         YT_LOG_DEBUG(resultOrError, "Unsuccessful materialization result received");
         ProcessControllerAgentError(resultOrError);
+        PendingMaterializeResult_.TrySet(error);
+    };
+
+    if (!resultOrError.IsOK()) {
+        onError(resultOrError);
+        return;
     }
+
+    auto result = resultOrError.Value();
+
+    ControllerRuntimeData_->SetNeededResources(result.InitialNeededResources);
+    ControllerRuntimeData_->GroupedNeededResources() = result.InitialGroupedNeededResources;
+
+    if (auto runtimeDataCheckError = CheckControllerRuntimeData(ControllerRuntimeData_);
+        !runtimeDataCheckError.IsOK())
+    {
+        onError(runtimeDataCheckError);
+        return;
+    }
+
+    InitialGroupedNeededResources_ = result.InitialGroupedNeededResources;
+
+    YT_LOG_DEBUG(
+        "Successful materialization result received "
+        "(Suspend: %v, InitialNeededResources: %v, InitialGroupedNeededResources: %v)",
+        result.Suspend,
+        FormatResources(result.InitialNeededResources),
+        InitialGroupedNeededResources_);
 
     PendingMaterializeResult_.TrySet(resultOrError);
 }
@@ -625,26 +639,40 @@ void TOperationControllerImpl::OnRevivalFinished(const TErrorOr<TOperationContro
 {
     YT_VERIFY(PendingReviveResult_);
 
-    if (resultOrError.IsOK()) {
-        auto result = resultOrError.Value();
-
-        ControllerRuntimeData_->SetNeededResources(result.NeededResources);
-        ControllerRuntimeData_->GroupedNeededResources() = result.GroupedNeededResources;
-        InitialGroupedNeededResources_ = result.InitialGroupedNeededResources;
-
-        YT_LOG_DEBUG(
-            "Successful revival result received "
-            "(RevivedFromSnapshot: %v, RevivedAllocationCount: %v, RevivedBannedTreeIds: %v, "
-            "NeededResources: %v, InitialGroupedNeededResources: %v)",
-            result.RevivedFromSnapshot,
-            result.RevivedAllocations.size(),
-            result.RevivedBannedTreeIds,
-            FormatResources(result.NeededResources),
-            InitialGroupedNeededResources_);
-    } else {
+    auto onError = [&] (const TError& error) {
         YT_LOG_DEBUG(resultOrError, "Unsuccessful revival result received");
         ProcessControllerAgentError(resultOrError);
+        PendingReviveResult_.TrySet(error);
+    };
+
+    if (!resultOrError.IsOK()) {
+        onError(resultOrError);
+        return;
     }
+
+    auto result = resultOrError.Value();
+
+    ControllerRuntimeData_->SetNeededResources(result.NeededResources);
+    ControllerRuntimeData_->GroupedNeededResources() = result.GroupedNeededResources;
+
+    if (auto runtimeDataCheckError = CheckControllerRuntimeData(ControllerRuntimeData_);
+        !runtimeDataCheckError.IsOK())
+    {
+        onError(runtimeDataCheckError);
+        return;
+    }
+
+    InitialGroupedNeededResources_ = result.InitialGroupedNeededResources;
+
+    YT_LOG_DEBUG(
+        "Successful revival result received "
+        "(RevivedFromSnapshot: %v, RevivedAllocationCount: %v, RevivedBannedTreeIds: %v, "
+        "NeededResources: %v, InitialGroupedNeededResources: %v)",
+        result.RevivedFromSnapshot,
+        result.RevivedAllocations.size(),
+        result.RevivedBannedTreeIds,
+        FormatResources(result.NeededResources),
+        InitialGroupedNeededResources_);
 
     PendingReviveResult_.TrySet(resultOrError);
 }

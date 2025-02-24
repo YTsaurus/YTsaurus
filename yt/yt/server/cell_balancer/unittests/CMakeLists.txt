@@ -12,76 +12,9 @@
 # Please refer to the build instructions in the repository for more information about manual
 # changes in this file.
 
-find_package(linux-headers-generic REQUIRED)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-aarch64.txt)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-x86_64.txt)
+endif()
 
-add_executable(cell-balancer-unittests)
-
-
-target_compile_options(cell-balancer-unittests PRIVATE
-  -Wdeprecated-this-capture
-  -Wimplicit-fallthrough
-)
-
-target_link_libraries(cell-balancer-unittests PUBLIC
-  linux-headers-generic::linux-headers-generic
-  contrib-libs-cxxsupp
-  yutil
-  library-cpp-cpuid_check
-  cpp-testing-gtest
-  cpp-testing-gtest_main
-  yt-server-cell_balancer
-)
-
-target_allocator(cell-balancer-unittests
-  cpp-malloc-tcmalloc
-  libs-tcmalloc-no_percpu_cache
-)
-
-target_link_options(cell-balancer-unittests PRIVATE
-  -ldl
-  -lrt
-  -Wl,--no-as-needed
-  -fPIC
-  -fPIC
-  -lrt
-  -ldl
-  -lutil
-)
-
-target_sources(cell-balancer-unittests PRIVATE
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/cell_balancer/unittests/bundle_scheduler_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/cell_balancer/unittests/chaos_scheduler_ut.cpp
-)
-
-
-add_test(
-  NAME
-  cell-balancer-unittests
-  COMMAND
-  cell-balancer-unittests
-)
-
-set_property(
-  TEST
-  cell-balancer-unittests
-  PROPERTY
-  LABELS
-  SMALL
-)
-
-set_property(
-  TEST
-  cell-balancer-unittests
-  PROPERTY
-  ENVIRONMENT
-)
-
-vcs_info(cell-balancer-unittests)
-
-set_property(
-  TEST
-  cell-balancer-unittests
-  PROPERTY
-  PROCESSORS
-  1
-)

@@ -12,78 +12,9 @@
 # Please refer to the build instructions in the repository for more information about manual
 # changes in this file.
 
-find_package(linux-headers-generic REQUIRED)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-aarch64.txt)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-x86_64.txt)
+endif()
 
-add_executable(unittester-tablet-balancer-lib)
-
-
-target_compile_options(unittester-tablet-balancer-lib PRIVATE
-  -Wdeprecated-this-capture
-  -Wimplicit-fallthrough
-)
-
-target_link_libraries(unittester-tablet-balancer-lib PUBLIC
-  linux-headers-generic::linux-headers-generic
-  contrib-libs-cxxsupp
-  yutil
-  library-cpp-cpuid_check
-  cpp-testing-gtest
-  cpp-testing-gtest_main
-  server-lib-tablet_balancer
-  tablet_balancer-dry_run-lib
-  yt-core-test_framework
-)
-
-target_allocator(unittester-tablet-balancer-lib
-  cpp-malloc-tcmalloc
-  libs-tcmalloc-no_percpu_cache
-)
-
-target_link_options(unittester-tablet-balancer-lib PRIVATE
-  -ldl
-  -lrt
-  -Wl,--no-as-needed
-  -fPIC
-  -fPIC
-  -lrt
-  -ldl
-  -lutil
-)
-
-target_sources(unittester-tablet-balancer-lib PRIVATE
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/tablet_balancer/unittests/balancing_helpers_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/tablet_balancer/unittests/bounded_priority_queue_ut.cpp
-)
-
-
-add_test(
-  NAME
-  unittester-tablet-balancer-lib
-  COMMAND
-  unittester-tablet-balancer-lib
-)
-
-set_property(
-  TEST
-  unittester-tablet-balancer-lib
-  PROPERTY
-  LABELS
-  SMALL
-)
-
-set_property(
-  TEST
-  unittester-tablet-balancer-lib
-  PROPERTY
-  ENVIRONMENT
-)
-
-vcs_info(unittester-tablet-balancer-lib)
-
-set_property(
-  TEST
-  unittester-tablet-balancer-lib
-  PROPERTY
-  PROCESSORS
-  1
-)

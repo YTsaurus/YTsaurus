@@ -1276,21 +1276,21 @@ public:
             operation->GetId(),
             operation->GetRevivedFromSnapshot());
 
-        TFuture<TOperationControllerMaterializeResult> asyncMaterializeResult;
+        TFuture<TOperationControllerMaterializeResult> materializationFuture;
         std::vector<TFuture<void>> futures;
         if (operation->GetRevivedFromSnapshot()) {
             operation->SetStateAndEnqueueEvent(EOperationState::RevivingJobs);
             futures.push_back(RegisterAllocationsFromRevivedOperation(operation));
         } else {
             operation->SetStateAndEnqueueEvent(EOperationState::Materializing);
-            asyncMaterializeResult = operation->GetController()->Materialize();
-            futures.push_back(asyncMaterializeResult.AsVoid());
+            materializationFuture = operation->GetController()->Materialize();
+            futures.push_back(materializationFuture.AsVoid());
 
             futures.push_back(NodeManager_->ResetOperationRevival(operation));
         }
 
         // TODO(eshcherbin): Remove config option for this feature and move all logic inside strategy.
-        auto scheduleOperationInSingleTree = operation->Spec()->ScheduleInSingleTree && Config_->EnableScheduleInSingleTree;
+        bool scheduleOperationInSingleTree = operation->Spec()->ScheduleInSingleTree && Config_->EnableScheduleInSingleTree;
         if (scheduleOperationInSingleTree) {
             // NB(eshcherbin): We need to make sure that all necessary information is in fair share tree snapshots
             // before choosing the best single tree for this operation during |FinishOperationMaterialization| later.
@@ -1299,38 +1299,58 @@ public:
 
         auto expectedState = operation->GetState();
         AllSucceeded(std::move(futures)).Subscribe(
-            BIND([=, this, this_ = MakeStrong(this), asyncMaterializeResult = std::move(asyncMaterializeResult)] (const TError& error) {
-                if (!error.IsOK()) {
-                    return;
-                }
-                if (operation->GetState() != expectedState) { // EOperationState::RevivingJobs or EOperationState::Materializing
-                    YT_LOG_INFO(
-                        "Operation state changed during materialization, skip materialization postprocessing "
-                        "(ActualState: %v, ExpectedState: %v)",
-                        operation->GetState(),
-                        expectedState);
-                    return;
-                }
-
-                bool shouldSuspend = [&] {
-                    if (!asyncMaterializeResult) {
-                        return false;
-                    }
-
-                    // Async materialize result is ready here as the combined future already has finished.
-                    YT_VERIFY(asyncMaterializeResult.IsSet());
-
-                    // asyncMaterializeResult contains no error, otherwise the |!error.IsOk()| check would trigger.
-                    return asyncMaterializeResult.Get().Value().Suspend;
-                }();
-
-                FinishOperationMaterialization(operation, shouldSuspend, scheduleOperationInSingleTree);
-            })
+            BIND(&TImpl::FinishOperationMaterialization,
+                MakeStrong(this),
+                operation,
+                expectedState,
+                scheduleOperationInSingleTree,
+                Passed(std::move(materializationFuture)))
             .Via(operation->GetCancelableControlInvoker()));
     }
 
-
     void FinishOperationMaterialization(
+        const TOperationPtr& operation,
+        EOperationState expectedState,
+        bool scheduleOperationInSingleTree,
+        TFuture<TOperationControllerMaterializeResult> materializationFuture,
+        const TError& error)
+    {
+        // EOperationState::RevivingJobs or EOperationState::Materializing
+        if (operation->GetState() != expectedState) {
+            YT_LOG_INFO(
+                "Operation state changed during materialization, skip materialization postprocessing "
+                "(ActualState: %v, ExpectedState: %v)",
+                operation->GetState(),
+                expectedState);
+            return;
+        }
+
+        bool shouldSuspend = false;
+        if (materializationFuture) {
+            // Async materialize result is ready here as the combined future already has finished.
+            YT_VERIFY(materializationFuture.IsSet());
+
+            const auto& materializationResultOrError = materializationFuture.Get();
+            if (!materializationResultOrError.IsOK()) {
+                YT_LOG_WARNING(materializationResultOrError,
+                    "Operation has failed to materialize (OperationId: %v)",
+                    operation->GetId());
+                auto wrappedError = TError("Operation has failed to materialize")
+                    << materializationResultOrError;
+                OnOperationFailed(operation, wrappedError);
+            } else {
+                shouldSuspend = materializationResultOrError.Value().Suspend;
+            }
+        }
+
+        if (!error.IsOK()) {
+            return;
+        }
+
+        DoFinishOperationMaterialization(operation, shouldSuspend, scheduleOperationInSingleTree);
+    }
+
+    void DoFinishOperationMaterialization(
         const TOperationPtr& operation,
         bool shouldSuspend,
         // This option must have the same value as at materialization start.

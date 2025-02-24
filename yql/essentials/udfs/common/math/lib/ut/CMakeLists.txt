@@ -12,86 +12,9 @@
 # Please refer to the build instructions in the repository for more information about manual
 # changes in this file.
 
-find_package(linux-headers-generic REQUIRED)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-aarch64.txt)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-x86_64.txt)
+endif()
 
-add_executable(yql-essentials-udfs-common-math-lib-ut)
-
-
-target_include_directories(yql-essentials-udfs-common-math-lib-ut PRIVATE
-  ${PROJECT_SOURCE_DIR}/yql/essentials/udfs/common/math/lib
-)
-
-target_link_libraries(yql-essentials-udfs-common-math-lib-ut PUBLIC
-  linux-headers-generic::linux-headers-generic
-  contrib-libs-cxxsupp
-  yutil
-  library-cpp-cpuid_check
-  cpp-testing-unittest_main
-  common-math-lib
-)
-
-target_allocator(yql-essentials-udfs-common-math-lib-ut
-  cpp-malloc-tcmalloc
-  libs-tcmalloc-no_percpu_cache
-)
-
-target_link_options(yql-essentials-udfs-common-math-lib-ut PRIVATE
-  -ldl
-  -lrt
-  -Wl,--no-as-needed
-  -fPIC
-  -fPIC
-  -lrt
-  -ldl
-)
-
-target_sources(yql-essentials-udfs-common-math-lib-ut PRIVATE
-  ${PROJECT_SOURCE_DIR}/yql/essentials/udfs/common/math/lib/round_ut.cpp
-)
-
-
-set_property(
-  TARGET
-  yql-essentials-udfs-common-math-lib-ut
-  PROPERTY
-  SPLIT_FACTOR
-  1
-)
-
-add_yunittest(
-  NAME
-  yql-essentials-udfs-common-math-lib-ut
-  TEST_TARGET
-  yql-essentials-udfs-common-math-lib-ut
-  TEST_ARG
-  --print-before-suite
-  --print-before-test
-  --fork-tests
-  --print-times
-  --show-fails
-)
-
-set_yunittest_property(
-  TEST
-  yql-essentials-udfs-common-math-lib-ut
-  PROPERTY
-  LABELS
-  SMALL
-)
-
-set_yunittest_property(
-  TEST
-  yql-essentials-udfs-common-math-lib-ut
-  PROPERTY
-  ENVIRONMENT
-)
-
-vcs_info(yql-essentials-udfs-common-math-lib-ut)
-
-set_yunittest_property(
-  TEST
-  yql-essentials-udfs-common-math-lib-ut
-  PROPERTY
-  PROCESSORS
-  1
-)

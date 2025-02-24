@@ -12,47 +12,9 @@
 # Please refer to the build instructions in the repository for more information about manual
 # changes in this file.
 
-find_package(linux-headers-generic REQUIRED)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-aarch64.txt)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-x86_64.txt)
+endif()
 
-add_subdirectory(lib)
-
-add_executable(tablet-balancer-dry-mode)
-
-
-target_compile_options(tablet-balancer-dry-mode PRIVATE
-  -Wdeprecated-this-capture
-  -Wimplicit-fallthrough
-)
-
-target_link_libraries(tablet-balancer-dry-mode PUBLIC
-  linux-headers-generic::linux-headers-generic
-  contrib-libs-cxxsupp
-  yutil
-  library-cpp-cpuid_check
-  tablet_balancer-dry_run-lib
-  cpp-getopt-small
-  cpp-yt-logging
-)
-
-target_allocator(tablet-balancer-dry-mode
-  cpp-malloc-tcmalloc
-  libs-tcmalloc-default
-)
-
-target_link_options(tablet-balancer-dry-mode PRIVATE
-  -ldl
-  -lrt
-  -Wl,--no-as-needed
-  -fPIC
-  -fPIC
-  -lrt
-  -ldl
-  -lutil
-)
-
-target_sources(tablet-balancer-dry-mode PRIVATE
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/tablet_balancer/dry_run/main.cpp
-)
-
-
-vcs_info(tablet-balancer-dry-mode)

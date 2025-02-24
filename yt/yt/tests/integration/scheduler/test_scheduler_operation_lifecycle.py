@@ -751,6 +751,22 @@ class TestSchedulerFunctionality(YTEnvSetup, PrepareTables):
         new_connection_time = parse_yt_time(get("//sys/scheduler/@connection_time"))
         assert new_connection_time == connection_time
 
+    @authors("eshcherbin")
+    def test_invalid_needed_resources_in_materialize(self):
+        op = run_sleeping_vanilla(spec={"testing": {"report_invalid_needed_resources_in_materialize": True}})
+        op.wait_for_state("failed")
+
+    @authors("eshcherbin")
+    def test_invalid_needed_resources_in_revive(self):
+        op = run_sleeping_vanilla(spec={"testing": {"report_invalid_needed_resources_in_revive": True}})
+        op.wait_for_state("running")
+        op.wait_for_fresh_snapshot()
+
+        with Restarter(self.Env, CONTROLLER_AGENTS_SERVICE):
+            pass
+
+        op.wait_for_state("failed")
+
 
 # See: YT-22656.
 @pytest.mark.enabled_multidaemon

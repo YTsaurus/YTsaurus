@@ -12,41 +12,9 @@
 # Please refer to the build instructions in the repository for more information about manual
 # changes in this file.
 
-find_package(linux-headers-generic REQUIRED)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-aarch64.txt)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-x86_64.txt)
+endif()
 
-add_library(contrib-restricted-turbo_base64)
-
-
-target_compile_options(contrib-restricted-turbo_base64 PRIVATE
-  $<IF:$<CXX_COMPILER_ID:MSVC>,,-Wno-everything>
-)
-
-target_link_libraries(contrib-restricted-turbo_base64 PUBLIC
-  linux-headers-generic::linux-headers-generic
-)
-
-target_sources(contrib-restricted-turbo_base64 PRIVATE
-  ${PROJECT_SOURCE_DIR}/contrib/restricted/turbo_base64/turbob64c.c
-  ${PROJECT_SOURCE_DIR}/contrib/restricted/turbo_base64/turbob64d.c
-  ${PROJECT_SOURCE_DIR}/contrib/restricted/turbo_base64/turbob64sse.c
-)
-
-
-target_sources_custom(contrib-restricted-turbo_base64
-  .avx
-  SRCS
-  ${PROJECT_SOURCE_DIR}/contrib/restricted/turbo_base64/turbob64sse.c
-  CUSTOM_FLAGS
-  -mavx
-)
-
-target_sources_custom(contrib-restricted-turbo_base64
-  .avx2
-  SRCS
-  ${PROJECT_SOURCE_DIR}/contrib/restricted/turbo_base64/turbob64avx2.c
-  CUSTOM_FLAGS
-  -mavx2
-  -mfma
-  -mbmi
-  -mbmi2
-)

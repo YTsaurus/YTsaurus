@@ -12,87 +12,9 @@
 # Please refer to the build instructions in the repository for more information about manual
 # changes in this file.
 
-find_package(linux-headers-generic REQUIRED)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-aarch64.txt)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-x86_64.txt)
+endif()
 
-add_executable(unittester-master)
-
-
-target_compile_options(unittester-master PRIVATE
-  -Wdeprecated-this-capture
-  -Wimplicit-fallthrough
-)
-
-target_link_libraries(unittester-master PUBLIC
-  linux-headers-generic::linux-headers-generic
-  contrib-libs-cxxsupp
-  yutil
-  library-cpp-cpuid_check
-  cpp-testing-gtest
-  cpp-testing-gtest_main
-  yt-server-master
-)
-
-target_allocator(unittester-master
-  cpp-malloc-tcmalloc
-  libs-tcmalloc-default
-)
-
-target_link_options(unittester-master PRIVATE
-  -ldl
-  -lrt
-  -Wl,--no-as-needed
-  -fPIC
-  -fPIC
-  -lrt
-  -ldl
-  -lutil
-)
-
-target_sources(unittester-master PRIVATE
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/master/unittests/chaos_replicated_node_proxy_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/master/unittests/chunk_helpers.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/master/unittests/chunk_list_statistics_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/master/unittests/chunk_replacer_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/master/unittests/chunk_requisition_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/master/unittests/chunk_tree_balancer_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/master/unittests/chunk_tree_traversing_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/master/unittests/chunk_view_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/master/unittests/cumulative_statistics_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/master/unittests/helpers.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/master/unittests/incumbent_scheduler_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/master/unittests/interned_pool_attributes_ut.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/master/unittests/tablet_cell_balancer_ut.cpp
-)
-
-
-add_test(
-  NAME
-  unittester-master
-  COMMAND
-  unittester-master
-)
-
-set_property(
-  TEST
-  unittester-master
-  PROPERTY
-  LABELS
-  MEDIUM
-)
-
-set_property(
-  TEST
-  unittester-master
-  PROPERTY
-  ENVIRONMENT
-)
-
-vcs_info(unittester-master)
-
-set_property(
-  TEST
-  unittester-master
-  PROPERTY
-  PROCESSORS
-  1
-)

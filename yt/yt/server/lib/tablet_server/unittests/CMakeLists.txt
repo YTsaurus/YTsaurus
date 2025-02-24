@@ -12,75 +12,9 @@
 # Please refer to the build instructions in the repository for more information about manual
 # changes in this file.
 
-find_package(linux-headers-generic REQUIRED)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-aarch64.txt)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT HAVE_CUDA)
+  include(CMakeLists.linux-x86_64.txt)
+endif()
 
-add_executable(unittester-server-lib-tablet_server)
-
-
-target_link_libraries(unittester-server-lib-tablet_server PUBLIC
-  linux-headers-generic::linux-headers-generic
-  contrib-libs-cxxsupp
-  yutil
-  library-cpp-cpuid_check
-  cpp-testing-gtest
-  cpp-testing-gtest_main
-  server-lib-tablet_server
-  server-lib-hydra
-  yt-yt-core
-  yt-core-test_framework
-  client-unittests-mock
-  yt_proto-yt-client
-)
-
-target_allocator(unittester-server-lib-tablet_server
-  cpp-malloc-tcmalloc
-  libs-tcmalloc-no_percpu_cache
-)
-
-target_link_options(unittester-server-lib-tablet_server PRIVATE
-  -ldl
-  -lrt
-  -Wl,--no-as-needed
-  -fPIC
-  -fPIC
-  -lrt
-  -ldl
-  -lutil
-)
-
-target_sources(unittester-server-lib-tablet_server PRIVATE
-  ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/tablet_server/unittests/replicated_table_tracker_ut.cpp
-)
-
-
-add_test(
-  NAME
-  unittester-server-lib-tablet_server
-  COMMAND
-  unittester-server-lib-tablet_server
-)
-
-set_property(
-  TEST
-  unittester-server-lib-tablet_server
-  PROPERTY
-  LABELS
-  MEDIUM
-)
-
-set_property(
-  TEST
-  unittester-server-lib-tablet_server
-  PROPERTY
-  ENVIRONMENT
-)
-
-vcs_info(unittester-server-lib-tablet_server)
-
-set_property(
-  TEST
-  unittester-server-lib-tablet_server
-  PROPERTY
-  PROCESSORS
-  1
-)

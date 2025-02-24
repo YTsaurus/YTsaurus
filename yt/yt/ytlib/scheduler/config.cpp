@@ -292,6 +292,10 @@ void TTestingOperationOptions::Register(TRegistrar registrar)
         .Default();
     registrar.Parameter("delay_inside_materialize", &TThis::DelayInsideMaterialize)
         .Default();
+    registrar.Parameter("report_invalid_needed_resources_in_materialize", &TThis::ReportInvalidNeededResourcesInMaterialize)
+        .Default(false);
+    registrar.Parameter("report_invalid_needed_resources_in_revive", &TThis::ReportInvalidNeededResourcesInRevive)
+        .Default(false);
     registrar.Parameter("delay_inside_operation_commit", &TThis::DelayInsideOperationCommit)
         .Default();
     registrar.Parameter("schedule_allocation_delay_scheduler", &TThis::ScheduleAllocationDelayScheduler)
