@@ -330,6 +330,9 @@ class YTEnvSetup(object):
     DELTA_MASTER_CONFIG = {}
     DELTA_DYNAMIC_MASTER_CONFIG = {}
     DELTA_NODE_CONFIG = {}
+    _DEFAULT_DELTA_NODE_CONFIG = {
+        "exec_node_is_not_data_node": True,
+    }
     DELTA_DYNAMIC_NODE_CONFIG = {}
     DELTA_CHAOS_NODE_CONFIG = {}
     DELTA_SCHEDULER_CONFIG = {}
@@ -501,7 +504,7 @@ class YTEnvSetup(object):
 
     NUM_REMOTE_CLUSTERS = 0
     NUM_TEST_PARTITIONS = 1
-    CLASS_TEST_LIMIT = 8 * 60  # limits all test cases in class duration inside partition (seconds)
+    CLASS_TEST_LIMIT = 16 * 60  # limits all test cases in class duration inside partition (seconds)
     NODE_IO_ENGINE_TYPE = None  # use "thread_pool" or "uring"
     NODE_USE_DIRECT_IO_FOR_READS = "never"
 
@@ -874,6 +877,12 @@ class YTEnvSetup(object):
         if cls.USE_SEQUOIA != cls.VALIDATE_SEQUOIA_TREE_CONSISTENCY:
             cls.VALIDATE_SEQUOIA_TREE_CONSISTENCY = False
 
+        # Separate exec nodes from data and tablet nodes.
+        if not cls.DELTA_NODE_FLAVORS:
+            cls.NUM_NODES *= 2
+            cls.DELTA_NODE_FLAVORS = [["data", "tablet"] for _ in range(cls.NUM_NODES)]
+            for i in range(cls.NUM_NODES // 2):
+                cls.DELTA_NODE_FLAVORS[i] = ["exec"]
         try:
             cls.start_envs()
         except:  # noqa
@@ -1155,6 +1164,7 @@ class YTEnvSetup(object):
         assert node_flavors_length == 0 or cls.NUM_NODES == node_flavors_length
 
         for index, config in enumerate(configs["node"]):
+            config = update_inplace(config, YTEnvSetup._DEFAULT_DELTA_NODE_CONFIG)
             config = update_inplace(config, cls.get_param("DELTA_NODE_CONFIG", cluster_index))
             if cls.USE_CUSTOM_ROOTFS:
                 config = update_inplace(config, get_custom_rootfs_delta_node_config())
@@ -1175,6 +1185,13 @@ class YTEnvSetup(object):
 
             if node_flavors_length != 0:
                 config["flavors"] = cls.DELTA_NODE_FLAVORS[index]
+
+                # Make exec nodes "remote", without an explicit default address.
+                # if cls.DELTA_NODE_FLAVORS[index] == ["exec"]:
+                #     config["addresses"] = [
+                #         ("exec-nodes-network", "localhost"),
+                #         ("default", "unreachable-exec-node")
+                #     ]
 
             configs["node"][index] = config
             cls.modify_node_config(configs["node"][index], cluster_index)

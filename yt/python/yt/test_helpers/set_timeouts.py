@@ -11,7 +11,7 @@ def get_timeout_mark(item):
 def pytest_collection_modifyitems(items, config):
     for item in items:
         if get_timeout_mark(item) is None:
-            item.add_marker(pytest.mark.timeout(90))
+            item.add_marker(pytest.mark.timeout(180))
         # By default plugin limits execution time not only of test function body but
         # including fixtures (setup_method/teardown_method/setup_class/teardown_class).
         # No problem if it is per test method fixtures (setup_method and teardown_method).
