@@ -373,6 +373,7 @@ private:
     std::vector<TArtifact> Artifacts_;
     std::vector<NDataNode::TArtifactKey> LayerArtifactKeys_;
     std::optional<TString> DockerImage_;
+    std::optional<TString> DockerImageId_;
 
     std::optional<TVirtualSandboxData> VirtualSandboxData_;
 

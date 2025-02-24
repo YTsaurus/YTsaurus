@@ -652,15 +652,15 @@ private:
                         YT_LOG_WARNING(imageOrError, "Failed to prepare root volume (Image: %v)", imageDescriptor);
 
                         THROW_ERROR_EXCEPTION(NExecNode::EErrorCode::DockerImagePullingFailed, "Failed to pull docker image")
-                            << TErrorAttribute("docker_image", *dockerImage)
+                            << TErrorAttribute("docker_image", imageDescriptor.Image)
                             << TErrorAttribute("authenticated", authenticated)
                             << imageOrError;
                     }
 
-                    const auto& imageId = imageOrError.Value()->ImageId();
-                    YT_LOG_INFO("Root volume prepared (ImageId: %v)", imageId);
-
-                    ResultHolder_.DockerImage = imageId.Image;
+                    const auto& cachedImage = imageOrError.Value()->Image();
+                    YT_LOG_INFO("Root volume prepared (Image: %v)", cachedImage);
+                    ResultHolder_.DockerImage = cachedImage.Image;
+                    ResultHolder_.DockerImageId = cachedImage.Id;
                     VolumePrepareFinishTime_ = TInstant::Now();
                     UpdateTimers_.Fire(MakeStrong(this));
                 }));

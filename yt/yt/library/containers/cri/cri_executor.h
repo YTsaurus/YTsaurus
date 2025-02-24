@@ -27,6 +27,7 @@ struct TCriPodDescriptor
 struct TCriImageDescriptor
 {
     TString Image;
+    TString Id;
 };
 
 void FormatValue(TStringBuilderBase* builder, const TCriDescriptor& descriptor, TStringBuf spec);

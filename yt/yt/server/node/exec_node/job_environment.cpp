@@ -1208,6 +1208,7 @@ private:
         // Run job proxy in docker image specified for the job.
         // For now CRI job-environment does not isolate user jobs from job proxy.
         spec->Image.Image = config->DockerImage.value_or(ConcreteConfig_->JobProxyImage);
+        spec->Image.Id = config->DockerImageId.value_or("");
 
         spec->Labels[YTJobIdLabel] = ToString(jobId);
 
