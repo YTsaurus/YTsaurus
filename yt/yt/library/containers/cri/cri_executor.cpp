@@ -194,7 +194,21 @@ private:
 
     void OnContainerStatus(TErrorOr<TCriRuntimeApi::TRspContainerStatusPtr>&& responseOrError)
     {
-        auto response = responseOrError.ValueOrThrow();
+        if (!responseOrError.IsOK()) {
+            // TODO(khlebnikov): Handle NotFound as abort, but gRPC code is not mapped yet.
+            // TODO(khlebnikov): Maybe add common EProcessErrorCode::Lost.
+            auto error = TError("Cannot get container status")
+                << TErrorAttribute("container_name", ContainerDescriptor_.Name)
+                << TErrorAttribute("container_id", ContainerDescriptor_.Id)
+                << TErrorAttribute("pod_name", PodDescriptor_.Name)
+                << TErrorAttribute("pod_id", PodDescriptor_.Id)
+                << responseOrError;
+            YT_LOG_ERROR(error, "Process is lost");
+            YT_UNUSED_FUTURE(AsyncWaitExecutor_->Stop());
+            FinishedPromise_.TrySet(error);
+            return;
+        }
+        auto& response = responseOrError.Value();
         if (!response->has_status()) {
             return;
         }
