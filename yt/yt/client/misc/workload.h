@@ -23,7 +23,9 @@ struct TWorkloadDescriptor
         int band = 0,
         TInstant instant = {},
         std::vector<TString> annotations = {},
-        std::optional<NConcurrency::TFairShareThreadPoolTag> compressionFairShareTag = {});
+        std::optional<NConcurrency::TFairShareThreadPoolTag> compressionFairShareTag = {},
+        std::optional<TString> diskFairShareBucketTag = {},
+        std::optional<double> diskFairShareBucketWeight = {});
 
     //! The type of the workload defining its basic priority.
     EWorkloadCategory Category;
@@ -43,6 +45,12 @@ struct TWorkloadDescriptor
     //! If present, invoker from fair share thread pool will be used for decompression.
     std::optional<NConcurrency::TFairShareThreadPoolTag> CompressionFairShareTag;
 
+    //! Bucket and weight of the workload for disks.
+    //! All the workload in the same DiskFairShareBucketTag gets fair share of disks according to DiskFairShareBucketWeight.
+    //! DiskFairShareBucketWeight should be positive. 1 is the default value. Larger is better.
+    std::optional<TString> DiskFairShareBucketTag;
+    std::optional<double> DiskFairShareBucketWeight;
+
     //! Updates the instant field with the current time.
     TWorkloadDescriptor SetCurrentInstant() const;
 
@@ -52,6 +60,7 @@ struct TWorkloadDescriptor
 };
 
 i64 GetBasicPriority(EWorkloadCategory category);
+double GetBasicWeight(EWorkloadCategory category);
 
 IInvokerPtr GetCompressionInvoker(const TWorkloadDescriptor& workloadDescriptor);
 

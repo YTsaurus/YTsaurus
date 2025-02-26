@@ -140,7 +140,9 @@ private:
         NChunkClient::TChunkReaderStatisticsPtr chunkReaderStatistics,
         const IIOEngine::TReadResponse& readResponse);
 
-    TFuture<TIOEngineHandlePtr> OpenDataFile(EDirectIOFlag useDirectIO);
+    TFuture<TIOEngineHandlePtr> OpenDataFile(
+        const NChunkClient::TClientChunkReadOptions& options,
+        EDirectIOFlag useDirectIO);
     TIOEngineHandlePtr OnDataFileOpened(EDirectIOFlag useDirectIO, const TIOEngineHandlePtr& file);
     EDirectIOFlag GetDirectIOFlag(bool useDirectIO);
 

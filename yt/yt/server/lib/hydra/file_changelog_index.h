@@ -113,6 +113,7 @@ private:
     const TString FileName_;
     const TFileChangelogConfigPtr Config_;
     EWorkloadCategory WorkloadCategory_;
+    TWorkloadDescriptor WorkloadDescriptor_;
 
     const NLogging::TLogger Logger;
 

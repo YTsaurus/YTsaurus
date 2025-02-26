@@ -1432,7 +1432,7 @@ private:
                     { };
                     readFutures.push_back(ioEngine->Read(
                         std::move(locationRequests[index]),
-                        workloadDescriptor.Category,
+                        workloadDescriptor,
                         GetRefCountedTypeCookie<TChunkFragmentBuffer>(),
                         readSessionId)
                         .ApplyUnique(BIND([

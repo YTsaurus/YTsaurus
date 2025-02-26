@@ -95,7 +95,7 @@ public:
 
     TFuture<TReadResponse> Read(
         std::vector<TReadRequest> /*requests*/,
-        EWorkloadCategory /*category*/,
+        const TWorkloadDescriptor& /*descriptor*/,
         TRefCountedTypeCookie /*tagCookie*/,
         TSessionId /*sessionId*/,
         bool /*useDedicatedAllocations*/) override
@@ -108,7 +108,7 @@ public:
 
     TFuture<void> Write(
         TWriteRequest /*request*/,
-        EWorkloadCategory /*category*/,
+        const TWorkloadDescriptor& /*descriptor*/,
         TSessionId /*sessionId*/) override
     {
         return RunRequest(Config_.WriteLatency, Config_.WriteFailingProbability);
@@ -116,14 +116,15 @@ public:
 
     TFuture<void> FlushFile(
         TFlushFileRequest /*request*/,
-        EWorkloadCategory /*category*/) override
+        const TWorkloadDescriptor& /*descriptor*/,
+        TSessionId /*sessionId*/) override
     {
         return RunRequest(TDuration{});
     }
 
     TFuture<void> FlushFileRange(
         TFlushFileRangeRequest /*request*/,
-        EWorkloadCategory /*category*/,
+        const TWorkloadDescriptor& /*descriptor*/,
         TSessionId /*sessionId*/) override
     {
         return RunRequest(TDuration{});
@@ -131,14 +132,16 @@ public:
 
     TFuture<void> FlushDirectory(
         TFlushDirectoryRequest /*request*/,
-        EWorkloadCategory /*category*/) override
+        const TWorkloadDescriptor& /*descriptor*/,
+        TSessionId /*sessionId*/) override
     {
         return RunRequest(TDuration{});
     }
 
     TFuture<TIOEngineHandlePtr> Open(
         TOpenRequest /*request*/,
-        EWorkloadCategory /*category*/) override
+        const TWorkloadDescriptor& /*descriptor*/,
+        TSessionId /*sessionId*/) override
     {
         return RunRequest(Config_.OpenLatency, Config_.OpenFailingProbability)
             .Apply(BIND([] {
@@ -148,28 +151,32 @@ public:
 
     TFuture<void> Close(
         TCloseRequest /*request*/,
-        EWorkloadCategory /*category*/) override
+        const TWorkloadDescriptor& /*descriptor*/,
+        TSessionId /*sessionId*/) override
     {
         return RunRequest(TDuration{});
     }
 
     TFuture<void> Allocate(
         TAllocateRequest /*request*/,
-        EWorkloadCategory /*category*/) override
+        const TWorkloadDescriptor& /*descriptor*/,
+        TSessionId /*sessionId*/) override
     {
         return RunRequest(TDuration{});
     }
 
     TFuture<void> Lock(
         TLockRequest /*request*/,
-        EWorkloadCategory /*category*/) override
+        const TWorkloadDescriptor& /*descriptor*/,
+        TSessionId /*sessionId*/) override
     {
         return RunRequest(TDuration{});
     }
 
     TFuture<void> Resize(
         TResizeRequest /*request*/,
-        EWorkloadCategory /*category*/) override
+        const TWorkloadDescriptor& /*descriptor*/,
+        TSessionId /*sessionId*/) override
     {
         return RunRequest(TDuration{});
     }

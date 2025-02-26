@@ -46,6 +46,7 @@ target_sources(server-lib-io PRIVATE
   ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/io/read_request_combiner.cpp
   ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/io/dynamic_io_engine.cpp
   ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/io/io_engine_base.cpp
+  ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/io/io_engine_fair.cpp
   ${PROJECT_SOURCE_DIR}/yt/yt/server/lib/io/io_engine_uring.cpp
 )
 

@@ -550,6 +550,8 @@ void TJobProxy::RetrieveJobSpec()
             descriptor->Annotations.end(),
             annotations.begin(),
             annotations.end());
+        descriptor->DiskFairShareBucketTag = ToString(JobId_);
+        descriptor->DiskFairShareBucketWeight = CpuGuarantee_;
     }
 
     {
