@@ -4,7 +4,6 @@
 
 #include <yt/yt/core/bus/tcp/config.h>
 #include <yt/yt/core/bus/tcp/client.h>
-#include <yt/yt/core/bus/tcp/ssl_context.h>
 
 #include <yt/yt/core/profiling/timing.h>
 
@@ -80,10 +79,6 @@ public:
 protected:
     void DoRun() override
     {
-        if (!CAFile_.empty()) {
-            NYT::TSslContext::Get()->LoadCAFile(CAFile_);
-        }
-
         DoSingleRun();
 
         if (!Flood_) {

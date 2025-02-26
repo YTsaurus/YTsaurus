@@ -21,6 +21,13 @@ void TPemBlobConfig::Register(TRegistrar registrar)
     });
 }
 
+TPemBlobConfigPtr TPemBlobConfig::CreateFileReference(const TString& fileName)
+{
+    auto config = New<TPemBlobConfig>();
+    config->FileName = fileName;
+    return config;
+}
+
 TString TPemBlobConfig::LoadBlob() const
 {
     if (FileName) {

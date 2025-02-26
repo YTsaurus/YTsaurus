@@ -3,8 +3,6 @@
 #include "config.h"
 #include "local_bypass.h"
 #include "dispatcher_impl.h"
-#include "ssl_context.h"
-#include "ssl_helpers.h"
 
 #include <yt/yt/core/misc/fs.h>
 #include <yt/yt/core/misc/proc.h>
@@ -39,6 +37,7 @@
 namespace NYT::NBus {
 
 using namespace NConcurrency;
+using namespace NCrypto;
 using namespace NFS;
 using namespace NNet;
 using namespace NYTree;
@@ -1963,8 +1962,7 @@ bool TTcpConnection::CheckSslReadError(ssize_t result)
             [[fallthrough]];
         default:
             UpdateBusCounter(&TBusNetworkBandCounters::ReadErrors, 1);
-            Abort(TError(NBus::EErrorCode::SslError, "TLS/SSL read error")
-                << TErrorAttribute("ssl_error", GetLastSslErrorString())
+            Abort(GetLastSslError("TLS/SSL read error")
                 << TErrorAttribute("sys_error", TError::FromSystem(LastSystemError())));
             break;
     }
@@ -1991,8 +1989,7 @@ bool TTcpConnection::CheckSslWriteError(ssize_t result)
             [[fallthrough]];
         default:
             UpdateBusCounter(&TBusNetworkBandCounters::WriteErrors, 1);
-            Abort(TError(NBus::EErrorCode::SslError, "TLS/SSL write error")
-                << TErrorAttribute("ssl_error", GetLastSslErrorString())
+            Abort(GetLastSslError("TLS/SSL write error")
                 << TErrorAttribute("sys_error", TError::FromSystem(LastSystemError())));
             break;
     }
@@ -2049,8 +2046,7 @@ bool TTcpConnection::DoSslHandshake()
             break;
     }
 
-    Abort(TError(NBus::EErrorCode::SslError, "Failed to establish TLS/SSL session")
-        << TErrorAttribute("ssl_error", GetLastSslErrorString())
+    Abort(GetLastSslError("Failed to establish TLS/SSL session")
         << TErrorAttribute("sys_error", TError::FromSystem(LastSystemError())));
     return false;
 }
@@ -2093,46 +2089,46 @@ void TTcpConnection::TryEstablishSslSession()
         return;
     }
 
-    Ssl_.reset(SSL_new(TSslContext::Get()->GetSslCtx()));
-    if (!Ssl_) {
-        Abort(TError(NBus::EErrorCode::SslError, "Failed to create a new SSL structure: %v", GetLastSslErrorString()));
-        return;
-    }
-
-    if (SSL_set_fd(Ssl_.get(), Socket_) != 1) {
-        Abort(TError(NBus::EErrorCode::SslError, "Failed to bind socket to SSL handle: %v", GetLastSslErrorString()));
-        return;
-    }
+    // FIXME(khlebnikov): Stop constructing SSL context from scratch for each connection.
+    auto sslContext = New<TSslContext>();
 
     if (Config_->CipherList) {
-        if (SSL_set_cipher_list(Ssl_.get(), Config_->CipherList->data()) != 1) {
-            Abort(TError(NBus::EErrorCode::SslError, "Failed to set cipher list: %v", GetLastSslErrorString()));
+        sslContext->SetCipherList(*Config_->CipherList);
+    }
+
+    // FIXME(khlebnikov): Move this and config into proper place.
+    auto getCertificateFilePath = [&](const TString& fileName) {
+        if (Config_->LoadCertsFromBusCertsDirectory) {
+            return JoinPaths(*TTcpDispatcher::TImpl::Get()->GetBusCertsDirectoryPath(), fileName);
+        }
+        return fileName;
+    };
+
+    if (VerificationMode_ != EVerificationMode::None) {
+        if (!Config_->CA) {
+            Abort(TError(NBus::EErrorCode::SslError, "CA file is not set in bus config"));
             return;
+        }
+
+        if (Config_->CA->FileName) {
+            const auto caFile = getCertificateFilePath(*Config_->CA->FileName);
+            sslContext->AddCertificateAuthorityFromFile(caFile);
+        } else {
+            sslContext->AddCertificateAuthority(*Config_->CA->Value);
         }
     }
 
-#define GET_CERT_FILE_PATH(file)    \
-    (Config_->LoadCertsFromBusCertsDirectory ? JoinPaths(*TTcpDispatcher::TImpl::Get()->GetBusCertsDirectoryPath(), (file)) : (file))
-
     if (ConnectionType_ == EConnectionType::Server) {
-        SSL_set_accept_state(Ssl_.get());
-
         if (!Config_->CertificateChain) {
             Abort(TError(NBus::EErrorCode::SslError, "Certificate chain file is not set in bus config"));
             return;
         }
 
         if (Config_->CertificateChain->FileName) {
-            const auto& certChainFile = GET_CERT_FILE_PATH(*Config_->CertificateChain->FileName);
-            if (SSL_use_certificate_chain_file(Ssl_.get(), certChainFile.data()) != 1) {
-                Abort(TError(NBus::EErrorCode::SslError, "Failed to load certificate chain file: %v", GetLastSslErrorString()));
-                return;
-            }
+            const auto certChainFile = getCertificateFilePath(*Config_->CertificateChain->FileName);
+            sslContext->AddCertificateChainFromFile(certChainFile);
         } else {
-            if (!UseCertificateChain(*Config_->CertificateChain->Value, Ssl_.get())) {
-                Abort(TError(NBus::EErrorCode::SslError, "Failed to load certificate chain: %v", GetLastSslErrorString()));
-                return;
-            }
+            sslContext->AddCertificateChain(*Config_->CertificateChain->Value);
         }
 
         if (!Config_->PrivateKey) {
@@ -2141,25 +2137,16 @@ void TTcpConnection::TryEstablishSslSession()
         }
 
         if (Config_->PrivateKey->FileName) {
-            const auto& privateKeyFile = GET_CERT_FILE_PATH(*Config_->PrivateKey->FileName);
-            if (SSL_use_PrivateKey_file(Ssl_.get(), privateKeyFile.data(), SSL_FILETYPE_PEM) != 1) {
-                Abort(TError(NBus::EErrorCode::SslError, "Failed to load private key file: %v", GetLastSslErrorString()));
-                return;
-            }
+            const auto privateKeyFile = getCertificateFilePath(*Config_->PrivateKey->FileName);
+            sslContext->AddPrivateKeyFromFile(privateKeyFile);
         } else {
-            if (!UsePrivateKey(*Config_->PrivateKey->Value, Ssl_.get())) {
-                Abort(TError(NBus::EErrorCode::SslError, "Failed to load private key: %v", GetLastSslErrorString()));
-                return;
-            }
+            sslContext->AddPrivateKey(*Config_->PrivateKey->Value);
         }
-
-        if (SSL_check_private_key(Ssl_.get()) != 1) {
-            Abort(TError(NBus::EErrorCode::SslError, "Failed to check the consistency of a private key with the corresponding certificate: %v", GetLastSslErrorString()));
-            return;
-        }
-    } else {
-        SSL_set_connect_state(Ssl_.get());
     }
+
+    sslContext->Commit();
+
+    Ssl_ = std::move(sslContext->NewSsl());
 
     switch (VerificationMode_) {
         case EVerificationMode::Full:
@@ -2168,43 +2155,35 @@ void TTcpConnection::TryEstablishSslSession()
             if (Config_->PeerAlternativeHostName) {
                 // Set hostname for peer certificate verification.
                 if (SSL_set1_host(Ssl_.get(), EndpointHostName_.c_str()) != 1) {
-                    Abort(TError(NBus::EErrorCode::SslError, "Failed to set hostname %v for peer certificate verification", EndpointHostName_));
+                    Abort(GetLastSslError("Failed to set hostname for peer certificate verification")
+                        << TErrorAttribute("ssl_peer_hostname", EndpointHostName_));
                     return;
                 }
 
                 // Add alternative hostname for peer certificate verification.
                 if (SSL_add1_host(Ssl_.get(), Config_->PeerAlternativeHostName->c_str()) != 1) {
-                    Abort(TError(NBus::EErrorCode::SslError, "Failed to add alternative hostname %v for peer certificate verification", *Config_->PeerAlternativeHostName));
+                    Abort(GetLastSslError("Failed to add alternative hostname for peer certificate verification")
+                        << TErrorAttribute("ssl_peer_hostname", *Config_->PeerAlternativeHostName));
                     return;
                 }
             } else if (auto networkAddress = TNetworkAddress::TryParse(EndpointHostName_); networkAddress.IsOK() && networkAddress.Value().IsIP()) {
                 // Set IP address for peer certificate verification.
                 auto address = ToString(networkAddress.Value(), {.IncludePort = false, .IncludeTcpProtocol = false});
                 if (X509_VERIFY_PARAM_set1_ip_asc(SSL_get0_param(Ssl_.get()), address.c_str()) != 1) {
-                    Abort(TError(NBus::EErrorCode::SslError, "Failed to set IP address %v for peer certificate verification", address));
+                    Abort(GetLastSslError("Failed to set IP address for peer certificate verification")
+                        << TErrorAttribute("ssl_peer_address", address));
                     return;
                 }
             } else {
                 // Set hostname for peer certificate verification.
                 if (SSL_set1_host(Ssl_.get(), EndpointHostName_.c_str()) != 1) {
-                    Abort(TError(NBus::EErrorCode::SslError, "Failed to set hostname %v for peer certificate verification", EndpointHostName_));
+                    Abort(GetLastSslError("Failed to set hostname for peer certificate verification")
+                        << TErrorAttribute("ssl_peer_hostname", EndpointHostName_));
                     return;
                 }
             }
             [[fallthrough]];
         case EVerificationMode::Ca: {
-            if (!Config_->CA) {
-                Abort(TError(NBus::EErrorCode::SslError, "CA file is not set in bus config"));
-                return;
-            }
-
-            if (Config_->CA->FileName) {
-                const auto& caFile = GET_CERT_FILE_PATH(*Config_->CA->FileName);
-                TSslContext::Get()->LoadCAFileIfNotLoaded(caFile);
-            } else {
-                TSslContext::Get()->UseCAIfNotUsed(*Config_->CA->Value);
-            }
-
             // Enable verification of the peer's certificate with the CA.
             SSL_set_verify(Ssl_.get(), SSL_VERIFY_PEER, /*callback*/ nullptr);
             break;
@@ -2213,6 +2192,24 @@ void TTcpConnection::TryEstablishSslSession()
             break;
         default:
             YT_ABORT();
+    }
+
+    SSL_set_mode(Ssl_.get(), SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
+
+    if (SSL_set_fd(Ssl_.get(), Socket_) != 1) {
+        Abort(GetLastSslError("Failed to bind socket to SSL handle"));
+        return;
+    }
+
+    if (ConnectionType_ == EConnectionType::Server) {
+        SSL_set_accept_state(Ssl_.get());
+
+        if (SSL_check_private_key(Ssl_.get()) != 1) {
+            Abort(GetLastSslError("Failed to check the consistency of a private key with the corresponding certificate"));
+            return;
+        }
+    } else {
+        SSL_set_connect_state(Ssl_.get());
     }
 
     PendingSslHandshake_ = DoSslHandshake();
@@ -2224,8 +2221,6 @@ void TTcpConnection::TryEstablishSslSession()
         NetworkCounters_.Exchange(TTcpDispatcher::TImpl::Get()->GetCounters(NetworkName_, IsEncrypted()));
         UpdateConnectionCount(1);
     }
-
-#undef GET_CERT_FILE_PATH
 }
 
 bool TTcpConnection::OnSslAckPacketReceived()

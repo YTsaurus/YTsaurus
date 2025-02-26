@@ -110,8 +110,6 @@ target_sources(yt-yt-core PRIVATE
   ${PROJECT_SOURCE_DIR}/yt/yt/core/bus/tcp/client.cpp
   ${PROJECT_SOURCE_DIR}/yt/yt/core/bus/tcp/local_bypass.cpp
   ${PROJECT_SOURCE_DIR}/yt/yt/core/bus/tcp/server.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/core/bus/tcp/ssl_context.cpp
-  ${PROJECT_SOURCE_DIR}/yt/yt/core/bus/tcp/ssl_helpers.cpp
   ${PROJECT_SOURCE_DIR}/yt/yt/core/compression/brotli.cpp
   ${PROJECT_SOURCE_DIR}/yt/yt/core/compression/bzip2.cpp
   ${PROJECT_SOURCE_DIR}/yt/yt/core/compression/codec.cpp

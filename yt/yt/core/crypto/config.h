@@ -17,6 +17,8 @@ struct TPemBlobConfig
 
     TString LoadBlob() const;
 
+    static TPemBlobConfigPtr CreateFileReference(const TString& fileName);
+
     REGISTER_YSON_STRUCT(TPemBlobConfig);
 
     static void Register(TRegistrar registrar);

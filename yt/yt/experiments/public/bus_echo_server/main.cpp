@@ -5,7 +5,6 @@
 
 #include <yt/yt/core/bus/tcp/config.h>
 #include <yt/yt/core/bus/tcp/server.h>
-#include <yt/yt/core/bus/tcp/ssl_context.h>
 
 #include <yt/yt/core/crypto/config.h>
 
@@ -70,14 +69,14 @@ protected:
             return;
         }
 
-        if (!CipherList_.empty()) {
-            TSslContext::Get()->SetCipherList(CipherList_);
-        }
-
         auto config = New<TBusServerConfig>();
         config->Port = Port_;
         if (!EncryptionMode_.empty()) {
             config->EncryptionMode = TEnumTraits<EEncryptionMode>::FromString(EncryptionMode_);
+        }
+
+        if (!CipherList_.empty()) {
+            config->CipherList = CipherList_;
         }
 
         if (!CertChainFile_.empty()) {
