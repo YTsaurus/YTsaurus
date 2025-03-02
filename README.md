@@ -1,5 +1,6 @@
 <img width="64" src="yt/docs/images/logo.png"/><br/>
 
+
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/ytsaurus/ytsaurus/blob/main/LICENSE)
 [![Telegram](https://img.shields.io/badge/chat-on%20Telegram-2ba2d9.svg)](https://t.me/ytsaurus)
 
