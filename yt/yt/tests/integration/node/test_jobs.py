@@ -412,7 +412,7 @@ if job_index == 0:
             track=False,
             in_="//tmp/t_in",
             out="//tmp/t_out",
-            command="python mapper.py",
+            command="python3 mapper.py",
             job_count=job_count,
             spec={
                 "data_weight_per_job": 1,

@@ -130,7 +130,7 @@ class _TestProxyFormatConfigBase(metaclass=ABCMeta):
             return yt.yson.dumps(data, yson_type=yson_type)
         elif format_name == "json":
             if tabular:
-                return b"\n".join(json.dumps(yt.yson.convert.yson_to_json(row)) for row in data)
+                return b"\n".join(json.dumps(yt.yson.convert.yson_to_json(row)).encode() for row in data)
             else:
                 return json.dumps(yt.yson.convert.yson_to_json(data))
         elif format_name == "yamr":

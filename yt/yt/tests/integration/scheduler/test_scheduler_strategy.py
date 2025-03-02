@@ -2729,7 +2729,7 @@ class TestSchedulerSuspiciousJobs(YTEnvSetup):
         # Jobs below are not suspicious, they are just stupid.
         op1 = map(
             track=False,
-            command='echo -ne "x = 1\nwhile True:\n    x = (x * x + 1) % 424243" | python',
+            command='echo -ne "x = 1\nwhile True:\n    x = (x * x + 1) % 424243" | python3',
             in_="//tmp/t",
             out="//tmp/t1",
         )

@@ -59,7 +59,7 @@ class LocalYtConfig(object):
             "log_writer_name": "debug",
         },
     })
-    default_docker_image = "docker.io/library/python:2.7-slim"
+    default_docker_image = "docker.io/library/python:3.8-slim"
 
     """Feature flags"""
     enable_master_cache = attr.ib(False)

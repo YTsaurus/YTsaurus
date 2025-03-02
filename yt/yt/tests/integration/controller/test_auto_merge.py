@@ -1008,7 +1008,7 @@ else:
         op = map(
             in_="//tmp/t_in",
             out=["//tmp/t_out"],
-            command="python mapper.py",
+            command="python3 mapper.py",
             file="//tmp/mapper.py",
             spec={
                 "auto_merge": {

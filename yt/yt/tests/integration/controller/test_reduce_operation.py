@@ -2845,7 +2845,7 @@ for line in sys.stdin:
             in_="//tmp/in",
             out="//tmp/out",
             reduce_by="key",
-            command="python script.py",
+            command="python3 script.py",
             file="//tmp/script.py",
             spec={
                 "reducer": {"format": "json"},

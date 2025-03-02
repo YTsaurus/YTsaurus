@@ -1239,7 +1239,7 @@ class TestSchedulerProfilingOnOperationFinished(YTEnvSetup, PrepareTables):
             .at_scheduler(fixed_tags={"tree": "default", "pool": "unique_pool"})\
             .counter("scheduler/pools/metrics/metric_completed")
 
-        cmd = """python -c "import os; os.write(5, '{value_completed=117};')";"""
+        cmd = """python3 -c "import os; os.write(5, b'{value_completed=117};')";"""
         run_test_vanilla(cmd, spec={"pool": "unique_pool"})
 
         wait(lambda: metric_completed_counter.get() == 117)
@@ -1252,7 +1252,7 @@ class TestSchedulerProfilingOnOperationFinished(YTEnvSetup, PrepareTables):
             .at_scheduler(fixed_tags={"tree": "default", "pool": "unique_pool"}) \
             .counter("scheduler/pools/metrics/metric_failed")
 
-        cmd = """python -c "import os; os.write(5, '{value_failed=225};')"; exit 1"""
+        cmd = """python3 -c "import os; os.write(5, b'{value_failed=225};')"; exit 1"""
         op = run_test_vanilla(
             command=cmd,
             spec={"max_failed_job_count": 1, "pool": "unique_pool"},
