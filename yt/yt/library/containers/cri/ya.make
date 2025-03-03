@@ -6,6 +6,7 @@ PEERDIR(
     yt/yt/core
     yt/yt/core/rpc/grpc
     yt/yt/contrib/cri-api
+    yt/yt/library/re2
 )
 
 SRCS(

@@ -1,6 +1,8 @@
 #include "config.h"
 #include "cri_api.h"
 
+#include <yt/yt/library/re2/re2.h>
+
 namespace NYT::NContainers::NCri {
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -35,6 +37,9 @@ void TCriExecutorConfig::Register(TRegistrar registrar)
             // https://github.com/containerd/containerd/issues/9160
             "failed to create containerd task: failed to create shim task: OCI runtime create failed: runc create failed: unable to create new parent process: namespace path: lstat /proc/0/ns/ipc: no such file or directory: unknown",
         });
+
+    registrar.Parameter("retry_error_pattern", &TThis::RetryErrorPattern)
+        .DefaultNew("^failed to set removing state for container .*: container is in starting state, can't be removed");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
