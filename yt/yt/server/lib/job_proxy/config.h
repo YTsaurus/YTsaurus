@@ -349,6 +349,9 @@ struct TJobProxyInternalConfig
     //! Docker image to build root volume as part of a container.
     std::optional<TString> DockerImage;
 
+    //! Docker image id in local cache.
+    std::optional<TString> DockerImageId;
+
     // COMPAT(artemagafonov): RootFS is always writable, so the flag should be removed after the update of all nodes.
     bool MakeRootFSWritable;
 

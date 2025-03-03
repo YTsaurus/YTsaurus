@@ -63,6 +63,7 @@ struct TJobWorkspaceBuildingResult
 {
     IVolumePtr RootVolume;
     std::optional<TString> DockerImage;
+    std::optional<TString> DockerImageId;
     std::vector<TString> TmpfsPaths;
     std::vector<NContainers::TBind> RootBinds;
     int SetupCommandCount = 0;

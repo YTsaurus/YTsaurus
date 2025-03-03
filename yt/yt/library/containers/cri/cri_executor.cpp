@@ -35,6 +35,9 @@ void FormatValue(TStringBuilderBase* builder, const TCriPodDescriptor& descripto
 void FormatValue(TStringBuilderBase* builder, const TCriImageDescriptor& descriptor, TStringBuf /*spec*/)
 {
     builder->AppendString(descriptor.Image);
+    if (!descriptor.Id.empty()) {
+        builder->AppendFormat(" id=%v", descriptor.Id.substr(0, 12));
+    }
 }
 
 static TError DecodeExitCode(int exitCode, const TString& reason)
@@ -689,7 +692,8 @@ private:
 
     void FillImageSpec(NProto::ImageSpec* spec, const TCriImageDescriptor& image)
     {
-        spec->set_image(image.Image);
+        spec->set_image(image.Id.empty() ? image.Image : image.Id);
+        spec->set_user_specified_image(image.Image);
     }
 
     void FillAuthConfig(NProto::AuthConfig* auth, const TCriAuthConfig& authConfig)
