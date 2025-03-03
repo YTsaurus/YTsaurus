@@ -761,6 +761,8 @@ struct TDockerRegistryConfig
 
     bool ForwardInternalImagesToJobSpecs = false;
 
+    bool TranslateInternalImagesIntoLayers = true;
+
     REGISTER_YSON_STRUCT(TDockerRegistryConfig);
 
     static void Register(TRegistrar registrar);

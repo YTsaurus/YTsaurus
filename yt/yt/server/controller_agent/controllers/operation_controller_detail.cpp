@@ -11241,7 +11241,7 @@ std::vector<TRichYPath> TOperationControllerBase::GetLayerPaths(
         TDockerImageSpec dockerImage(*userJobSpec->DockerImage, Config->DockerRegistry);
 
         // External docker images are not compatible with any additional layers.
-        if (!dockerImage.IsInternal()) {
+        if (!dockerImage.IsInternal() || !Config->DockerRegistry->TranslateInternalImagesIntoLayers) {
             return {};
         }
 
