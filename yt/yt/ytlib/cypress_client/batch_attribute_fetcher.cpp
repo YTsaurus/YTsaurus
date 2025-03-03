@@ -28,11 +28,15 @@ using namespace NLogging;
 // TODO(max42): make configurable.
 static constexpr int MaxUnusedNodeCount = 5000;
 
+// TODO(achulkov2): It would be nifty to extract these names from interned attribute names into some non-server space.
+// Builtin attributes are used as extensively all over the client/ytlib space.
+static constexpr auto TypeAttributeName = "type";
+
 ////////////////////////////////////////////////////////////////////////////////
 
 TBatchAttributeFetcher::TBatchAttributeFetcher(
     const std::vector<TYPath>& paths,
-    const std::vector<TString>& attributeNames,
+    const std::vector<std::string>& attributeNames,
     const NApi::NNative::IClientPtr& client,
     const IInvokerPtr& invoker,
     const TLogger& logger,
@@ -43,7 +47,12 @@ TBatchAttributeFetcher::TBatchAttributeFetcher(
     , MasterReadOptions_(options)
     , Logger(logger)
 {
-    YT_VERIFY(std::find(AttributeNames_.begin(), AttributeNames_.end(), "type") != AttributeNames_.end());
+    // We need the "type" attribute to distinguish links from regular nodes. If it is not requested, we fetch it, but
+    // later remove it from the externally visible result.
+    if (std::find(AttributeNames_.begin(), AttributeNames_.end(), TypeAttributeName) == AttributeNames_.end()) {
+        AddedTypeAttribute_ = true;
+        AttributeNames_.push_back(TypeAttributeName);
+    }
 
     int invalidPathCount = 0;
 
@@ -288,7 +297,7 @@ void TBatchAttributeFetcher::FetchSymlinks()
     for (auto& entry : Entries_) {
         if (entry.Error.IsOK()) {
             YT_VERIFY(entry.Attributes);
-            if (entry.Attributes->Get<EObjectType>("type") == EObjectType::Link) {
+            if (entry.Attributes->Get<EObjectType>(TypeAttributeName) == EObjectType::Link) {
                 auto req = TYPathProxy::Get(entry.DirName + "/" + entry.BaseName + "/@");
                 SetupYPathRequest(req);
                 ToProto(req->mutable_attributes()->mutable_keys(), AttributeNames_);
@@ -330,6 +339,10 @@ void TBatchAttributeFetcher::FillResult()
             Attributes_[entry.Index] = std::move(entry.Error);
         } else {
             YT_VERIFY(entry.Attributes);
+            // We are modifying internal state here, but we don't care anymore.
+            if (AddedTypeAttribute_) {
+                entry.Attributes->Remove(TypeAttributeName);
+            }
             Attributes_[entry.Index] = std::move(entry.Attributes);
         }
     }

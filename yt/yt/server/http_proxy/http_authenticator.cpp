@@ -3,6 +3,10 @@
 #include "bootstrap.h"
 #include "config.h"
 
+#include <yt/yt/ytlib/api/native/connection.h>
+
+#include <yt/yt/ytlib/security_client/user_attribute_cache.h>
+
 #include <yt/yt/library/auth_server/config.h>
 #include <yt/yt/library/auth_server/token_authenticator.h>
 #include <yt/yt/library/auth_server/ticket_authenticator.h>
@@ -20,6 +24,7 @@
 
 namespace NYT::NHttpProxy {
 
+using namespace NApi::NNative;
 using namespace NAuth;
 using namespace NHttp;
 using namespace NYTree;
@@ -73,6 +78,7 @@ void THttpAuthenticator::HandleRequest(const IRequestPtr& req, const IResponseWr
                 .BeginMap()
                     .Item("login").Value(result.Value().Result.Login)
                     .Item("realm").Value(result.Value().Result.Realm)
+                    .Item("real_login").Value(GetRealLogin(result.Value().Result))
                     .Item("csrf_token").Value(csrfToken)
                 .EndMap();
         });
@@ -116,6 +122,7 @@ TErrorOr<TAuthenticationResultAndToken> THttpAuthenticator::Authenticate(
     NTracing::TChildTraceContextGuard authSpan("HttpProxy.Auth");
 
     constexpr TStringBuf AuthorizationHeaderName = "Authorization";
+    // COMPAT(achulkov2): Remove once yql_agent is added to superusers everywhere.
     const THashSet<TStringBuf> UserImpersonationWhitelist{"yql_agent"};
     if (auto authorizationHeader = request->GetHeaders()->Find(AuthorizationHeaderName)) {
         static const TStringBuf Prefix = "OAuth ";
@@ -145,15 +152,35 @@ TErrorOr<TAuthenticationResultAndToken> THttpAuthenticator::Authenticate(
             auto authenticationResult = rsp.Value();
 
             if (auto userHeader = request->GetHeaders()->Find(UserNameHeader)) {
-                if (UserImpersonationWhitelist.contains(authenticationResult.Login)) {
+                auto isWhitelisted = UserImpersonationWhitelist.contains(authenticationResult.Login);
+
+                auto isSuperuserOrError = WaitFor(IsSuperuser(Bootstrap_->GetNativeConnection(), authenticationResult.Login));
+                // There should be no errors in checking for superuser status even for whitelisted users, so let's throw.
+                if (!isSuperuserOrError.IsOK()) {
+                    return TError(isSuperuserOrError);
+                }
+
+                // This should almost always return straight from cache.
+                auto isUserBannedOrError = WaitForFast(IsUserBanned(Bootstrap_->GetNativeConnection(), authenticationResult.Login));
+                if (!isUserBannedOrError.IsOK()) {
+                    return TError(isUserBannedOrError);
+                }
+
+                // COMPAT(achulkov2): While keeping the whitelist for compatibility reasons, the ability to ban impersonation from yql_agent
+                // seems useful. To be simplified once whitelist is removed.
+                if (!isUserBannedOrError.Value() && (isSuperuserOrError.Value() || isWhitelisted)) {
                     authenticationResult.Login = *userHeader;
                     authenticationResult.Realm += ":impersonation";
+                    authenticationResult.RealLogin = authenticationResult.Login;
                 } else {
                     return TError(
                         NRpc::EErrorCode::InvalidCredentials,
-                        "Client has provided %v header but authenticated user %v is not in impersonation whitelist",
+                        "Client has provided %v header but authenticated user %v is not whitelisted, or a superuser (or is banned)",
                         UserNameHeader,
-                        authenticationResult.Login);
+                        authenticationResult.Login)
+                        << TErrorAttribute("is_superuser", isSuperuserOrError.Value())
+                        << TErrorAttribute("is_banned", isUserBannedOrError.Value())
+                        << TErrorAttribute("is_whitelisted", isWhitelisted);
                 }
             }
 

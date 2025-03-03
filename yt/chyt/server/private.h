@@ -46,7 +46,7 @@ constexpr int MaxSupportedCHDecimalPrecision = 76;
 extern const TString CacheUserName;
 extern const TString ChytSqlObjectsUserName;
 extern const TString InternalRemoteUserName;
-extern const std::vector<TString> TableAttributesToFetch;
+extern const std::vector<std::string> TableAttributesToFetch;
 
 ////////////////////////////////////////////////////////////////////////////////
 

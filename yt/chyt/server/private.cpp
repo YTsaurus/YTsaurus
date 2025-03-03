@@ -7,7 +7,7 @@ namespace NYT::NClickHouseServer {
 const TString CacheUserName("yt-clickhouse-cache");
 const TString ChytSqlObjectsUserName("chyt-sql-objects");
 const TString InternalRemoteUserName("$remote");
-const std::vector<TString> TableAttributesToFetch{
+const std::vector<std::string> TableAttributesToFetch{
     "id",
     // TODO(dakovalkov): Eliminate this with "schema_id" (CHYT-687).
     "schema",

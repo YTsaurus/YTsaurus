@@ -1680,6 +1680,12 @@ def _build_cluster_connection_config(yt_config,
             "expire_after_access_time": 0,
             "refresh_time": 0,
         },
+        "group_attribute_cache": {
+            "expire_after_successful_update_time": 0,
+            "expire_after_failed_update_time": 0,
+            "expire_after_access_time": 0,
+            "refresh_time": 0,
+        },
         "master_cell_directory_synchronizer": {
             "sync_period": 500,
             "expire_after_successful_update_time": 500,

@@ -15,7 +15,7 @@ from yt_commands import (
     create_user, create_proxy_role, issue_token, make_ace,
     create_access_control_object_namespace, create_access_control_object,
     with_breakpoint, wait_breakpoint, print_debug, raises_yt_error,
-    read_table, write_table, Operation)
+    read_table, write_table, add_member, Operation)
 
 from yt.common import YtResponseError
 import yt.packages.requests as requests
@@ -875,6 +875,16 @@ class TestHttpProxyAuth(HttpProxyTestBase):
         wait(lambda: check_access(proxy_address, path=node, status_code=400, error_code=yt_error_codes.AuthorizationErrorCode, token=yql_agent_token))
         wait(lambda: check_access(proxy_address, path=node, status_code=200, token=yql_agent_token, user="test_user"))
 
+        # Now the user should be allowed to impersonate others.
+        add_member("test_user", "superusers")
+        # While yql_agent is not, even though it is explicitly whitelisted.
+        set("//sys/users/yql_agent/@banned", True)
+        wait(lambda: check_access(proxy_address, status_code=401, token=yql_agent_token, user="test_user"))
+        wait(lambda: check_access(proxy_address, status_code=200, token=test_user_token, user="root"))
+
+        # Superusers can be banned too!
+        set("//sys/users/test_user/@banned", True)
+        wait(lambda: check_access(proxy_address, status_code=401, token=test_user_token, user="root"))
 
 @pytest.mark.enabled_multidaemon
 class TestHttpProxyFraming(HttpProxyTestBase):

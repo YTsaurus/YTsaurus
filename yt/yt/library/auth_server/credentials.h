@@ -36,13 +36,18 @@ struct TServiceTicketCredentials
 
 struct TAuthenticationResult
 {
+    //! Effective login. If impersonation was performed, this is the impersonated user.
     std::string Login;
     TString Realm;
     TString UserTicket;
+    //! Set to the original user name if impersonation headers were provided.
+    std::optional<std::string> RealLogin;
 
     //! If set, client is advised to set this cookie.
     std::optional<TString> SetCookie;
 };
+
+std::string GetRealLogin(const TAuthenticationResult& result);
 
 ////////////////////////////////////////////////////////////////////////////////
 

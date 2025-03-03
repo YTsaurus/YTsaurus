@@ -354,6 +354,8 @@ void TConnectionDynamicConfig::Register(TRegistrar registrar)
 
     registrar.Parameter("permission_cache", &TThis::PermissionCache)
         .DefaultNew();
+    registrar.Parameter("user_attribute_cache", &TThis::UserAttributeCache)
+        .DefaultNew();
 
     registrar.Parameter("job_shell_descriptor_cache", &TThis::JobShellDescriptorCache)
         .Alias("job_node_descriptor_cache")

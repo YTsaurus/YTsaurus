@@ -129,6 +129,7 @@ struct IConnection
     virtual const NJobProberClient::TJobShellDescriptorCachePtr& GetJobShellDescriptorCache() = 0;
 
     virtual const NSecurityClient::TPermissionCachePtr& GetPermissionCache() = 0;
+    virtual const NSecurityClient::TUserAttributeCachePtr& GetUserAttributeCache() = 0;
 
     virtual const TStickyGroupSizeCachePtr& GetStickyGroupSizeCache() = 0;
 
@@ -276,6 +277,14 @@ IConnectionPtr GetRemoteConnectionOrThrow(
 TFuture<NTabletClient::TTableMountInfoPtr> GetTableMountInfo(
     const NYPath::TRichYPath& objectPath,
     const IConnectionPtr& connection);
+
+////////////////////////////////////////////////////////////////////////////////
+
+//! Uses user attribute cache to check if the user is a superuser.
+TFuture<bool> IsSuperuser(const NApi::NNative::IConnectionPtr& connection, const std::string& user);
+
+//! Uses user attribute cache to check if the user is banned.
+TFuture<bool> IsUserBanned(const NApi::NNative::IConnectionPtr& connection, const std::string& user);
 
 ////////////////////////////////////////////////////////////////////////////////
 

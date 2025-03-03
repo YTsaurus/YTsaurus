@@ -389,6 +389,7 @@ SRCS(
     security_client/helpers.cpp
     security_client/permission_cache.cpp
     security_client/public.cpp
+    security_client/user_attribute_cache.cpp
 
     security_client/proto/account_ypath.proto
     security_client/proto/group_ypath.proto

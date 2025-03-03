@@ -36,4 +36,19 @@ void TPermissionCacheConfig::Register(TRegistrar registrar)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+void TUserAttributeCacheConfig::Register(TRegistrar registrar)
+{
+    registrar.Preprocessor([] (TThis* config) {
+        config->MasterReadOptions->ReadFrom = NApi::EMasterChannelKind::Cache;
+        config->MasterReadOptions->CacheStickyGroupSize = 1;
+
+        // This way the load induced by this cache is not larger than
+        // the one produced by the permission cache by default.
+        config->ExpireAfterAccessTime = TDuration::Minutes(5);
+        config->ExpireAfterSuccessfulUpdateTime = TDuration::Minutes(3);
+    });
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 } // namespace NYT::NSecurityClient

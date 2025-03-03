@@ -19,6 +19,10 @@ struct TPermissionKey;
 DECLARE_REFCOUNTED_CLASS(TPermissionCache)
 DECLARE_REFCOUNTED_STRUCT(TPermissionCacheConfig)
 
+DECLARE_REFCOUNTED_CLASS(TUserAttributes)
+DECLARE_REFCOUNTED_CLASS(TUserAttributeCache)
+DECLARE_REFCOUNTED_CLASS(TUserAttributeCacheConfig)
+
 ////////////////////////////////////////////////////////////////////////////////
 
 } // namespace NYT::NSecurityClient
