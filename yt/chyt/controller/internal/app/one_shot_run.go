@@ -43,6 +43,8 @@ func NewOneShotRunner(config *OneShotRunnerConfig, options *Options, cf strawber
 		Token:  config.Token,
 		Proxy:  config.Proxy,
 		Logger: withName(runner.l, "yt"),
+
+		DisableProxyDiscovery: true,
 	})
 	if err != nil {
 		panic(err)

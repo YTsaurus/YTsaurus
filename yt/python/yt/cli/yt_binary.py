@@ -2540,6 +2540,16 @@ def add_jupyt_parser(root_subparsers):
     add_strawberry_ctl_parser(add_jupyter_subparser, "jupyt")
 
 
+def add_tryt_parser(root_subparsers):
+   parser = populate_argument_help(root_subparsers.add_parser(
+       "tryt", description="Transfer over YT commands"))
+
+   tryt_subparsers = parser.add_subparsers(metavar="transfer_command", **SUBPARSER_KWARGS)
+
+   add_tryt_subparser = add_subparser(tryt_subparsers, params_argument=False)
+   add_strawberry_ctl_parser(add_tryt_subparser, "tryt")
+
+
 @copy_docstring_from(yt.find_spark_cluster)
 def find_spark_cluster_handler(*args, **kwargs):
     spark_cluster = yt.find_spark_cluster(*args, **kwargs)

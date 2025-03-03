@@ -10,6 +10,7 @@ import (
 	"go.ytsaurus.tech/yt/chyt/controller/internal/chyt"
 	"go.ytsaurus.tech/yt/chyt/controller/internal/jupyt"
 	"go.ytsaurus.tech/yt/chyt/controller/internal/strawberry"
+	"go.ytsaurus.tech/yt/chyt/controller/internal/tryt"
 	"go.ytsaurus.tech/yt/go/ypath"
 	"go.ytsaurus.tech/yt/go/yson"
 	"go.ytsaurus.tech/yt/go/yt"
@@ -52,6 +53,8 @@ func doOneShotRun() error {
 		ctor = chyt.NewController
 	} else if flagFamily == "jupyt" {
 		ctor = jupyt.NewController
+	} else if flagFamily == "tryt" {
+		ctor = tryt.NewController
 	} else {
 		panic(fmt.Errorf("unknown strawberry family %v", flagFamily))
 	}

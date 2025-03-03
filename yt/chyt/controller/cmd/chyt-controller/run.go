@@ -9,6 +9,7 @@ import (
 	"go.ytsaurus.tech/yt/chyt/controller/internal/jupyt"
 	"go.ytsaurus.tech/yt/chyt/controller/internal/livy"
 	"go.ytsaurus.tech/yt/chyt/controller/internal/strawberry"
+	"go.ytsaurus.tech/yt/chyt/controller/internal/tryt"
 )
 
 var runCmd = &cobra.Command{
@@ -67,6 +68,16 @@ func doRun() error {
 			ExtraCommands: []api.CmdDescriptor{},
 		}
 		cfs["livy"] = livyFactory
+	}
+
+	// TRYR Transfer controller is optional
+
+	if trytConfig, ok := config.Controllers["tryt"]; ok {
+		cfs["tryt"] = strawberry.ControllerFactory{
+			Ctor:          tryt.NewController,
+			Config:        trytConfig,
+			ExtraCommands: tryt.AllCommands,
+		}
 	}
 
 	a := app.New(&config, &options, cfs)

@@ -10,4 +10,5 @@ RECURSE(
     monitoring
     sleep
     strawberry
+    tryt
 )

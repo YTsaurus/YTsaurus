@@ -9,6 +9,7 @@ import (
 	"go.ytsaurus.tech/yt/chyt/controller/internal/jupyt"
 	"go.ytsaurus.tech/yt/chyt/controller/internal/livy"
 	"go.ytsaurus.tech/yt/chyt/controller/internal/strawberry"
+	"go.ytsaurus.tech/yt/chyt/controller/internal/tryt"
 )
 
 var initClusterCmd = &cobra.Command{
@@ -33,6 +34,9 @@ func doInitCluster() error {
 	}
 	if slices.Contains(config.Families, "livy") {
 		familyToInitializerFactory["livy"] = livy.NewClusterInitializer
+	}
+	if slices.Contains(config.Families, "tryt") {
+		familyToInitializerFactory["tryt"] = tryt.NewClusterInitializer
 	}
 
 	clusterInitializer := app.NewClusterInitializer(&config, familyToInitializerFactory)
